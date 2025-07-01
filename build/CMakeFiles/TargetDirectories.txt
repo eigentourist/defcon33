@@ -1,0 +1,3 @@
+/Users/acz/defcon33/build/CMakeFiles/game_of_life.dir
+/Users/acz/defcon33/build/CMakeFiles/edit_cache.dir
+/Users/acz/defcon33/build/CMakeFiles/rebuild_cache.dir
