@@ -12,6 +12,7 @@
 		[
 			"add_executable",
 			"target_link_options",
+			"target_link_libraries",
 			"target_include_directories"
 		],
 		"files" : 
@@ -32,13 +33,19 @@
 			{
 				"command" : 1,
 				"file" : 0,
-				"line" : 16,
+				"line" : 17,
 				"parent" : 0
 			},
 			{
 				"command" : 2,
 				"file" : 0,
-				"line" : 10,
+				"line" : 28,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 11,
 				"parent" : 0
 			}
 		]
@@ -55,7 +62,7 @@
 			"includes" : 
 			[
 				{
-					"backtrace" : 3,
+					"backtrace" : 4,
 					"path" : "/usr/local/opt/opencl-headers/include"
 				}
 			],
@@ -84,6 +91,16 @@
 				"backtrace" : 2,
 				"fragment" : "OpenCL",
 				"role" : "flags"
+			},
+			{
+				"backtrace" : 3,
+				"fragment" : "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/libcurses.tbd",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 3,
+				"fragment" : "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/libform.tbd",
+				"role" : "libraries"
 			}
 		],
 		"language" : "C"
