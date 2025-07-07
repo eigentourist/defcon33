@@ -5,11 +5,21 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+#include <string.h>
+#include <sys/time.h>
+
 
 #define WIDTH 32
 #define HEIGHT 16
 #define STEPS 100
 #define DELAY_US 120000  // Slowed down from 100ms to 120ms
+
+double time_in_seconds()
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return tv.tv_sec + tv.tv_usec * 1e-6;
+}
 
 void load_oscillator(int* board) {
     // Clear the board
@@ -44,7 +54,17 @@ void load_glider(int* board) {
 }
 
 
-int main() {
+int main(int argc, char** argv) {
+    bool force_cpu = false;
+    bool benchmark_mode = false;
+    for (int i = 1; i < argc; ++i) {
+        if (strcmp(argv[i], "--cpu") == 0) {
+            force_cpu = true;
+        } else if (strcmp(argv[i], "--benchmark") == 0) {
+            benchmark_mode = true;
+        }
+    }
+
     size_t board_size = WIDTH * HEIGHT * sizeof(int);
     int* board_in = (int*)malloc(board_size);
     int* board_out = (int*)malloc(board_size);
@@ -90,7 +110,7 @@ int main() {
     for (cl_uint i = 0; i < num_devices; ++i) {
         cl_device_type dtype;
         clGetDeviceInfo(devices[i], CL_DEVICE_TYPE, sizeof(dtype), &dtype, NULL);
-        if (dtype == CL_DEVICE_TYPE_GPU) {
+        if (dtype == CL_DEVICE_TYPE_GPU && !force_cpu) {
             selected_device = devices[i];
             selected_type = dtype;
             break;
@@ -110,7 +130,12 @@ int main() {
     char device_name[128];
     clGetDeviceInfo(selected_device, CL_DEVICE_NAME, sizeof(device_name), device_name, NULL);
     const char *type_str = (selected_type == CL_DEVICE_TYPE_GPU) ? "GPU" : "CPU";
-    printf("OpenCL device: %s (%s)\n", device_name, type_str);
+    if (force_cpu && selected_type == CL_DEVICE_TYPE_CPU) {
+        printf("OpenCL device: %s (%s - forced)\n", device_name, type_str);
+    } else {
+        printf("OpenCL device: %s (%s)\n", device_name, type_str);
+    }
+
 
     device = selected_device;
     free(devices);
@@ -161,6 +186,12 @@ int main() {
         init_pair(2, COLOR_RED, COLOR_BLACK);    // Dead cell
     }
 
+    double start_time = 0.0, end_time = 0.0;
+    if (benchmark_mode) {
+        start_time = time_in_seconds();
+    }
+
+
     for (int step = 0; step < STEPS; ++step) {
         clEnqueueWriteBuffer(queue, buf_in, CL_TRUE, 0, board_size, board_in, 0, NULL, NULL);
 
@@ -188,19 +219,33 @@ int main() {
                 }
             }
         }
-        mvprintw(HEIGHT, 0, "Step %d (press 'q' to quit)", step + 1);
+        double elapsed = time_in_seconds() - start_time;
+        double fps = (elapsed > 0) ? (1.0 / elapsed) : 0.0;
+        mvprintw(HEIGHT, 0, "Step %d (%.1f FPS, press 'q' to quit)", step + 1, fps);
+        start_time = time_in_seconds();
+
         refresh();
 
         int ch = getch();
         if (ch == 'q' || ch == 'Q') break;
 
-        usleep(DELAY_US);
+        if (!benchmark_mode) {
+            usleep(DELAY_US);
+        }
+
         int* tmp = board_in;
         board_in = board_out;
         board_out = tmp;
     }
 
     endwin();
+
+    if (benchmark_mode) {
+        end_time = time_in_seconds();
+        double elapsed = end_time - start_time;
+        double fps = STEPS / elapsed;
+        printf("Benchmark complete: %.2f seconds, %.2f FPS\n\n", elapsed, fps);
+    }
 
     clReleaseMemObject(buf_in);
     clReleaseMemObject(buf_out);
