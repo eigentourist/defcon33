@@ -15,7 +15,8 @@
 					"source" : ".",
 					"targetIndexes" : 
 					[
-						0
+						0,
+						1
 					]
 				}
 			],
@@ -27,10 +28,11 @@
 					[
 						0
 					],
-					"name" : "OpenCL_GameOfLife",
+					"name" : "DefCon33",
 					"targetIndexes" : 
 					[
-						0
+						0,
+						1
 					]
 				}
 			],
@@ -39,8 +41,15 @@
 				{
 					"directoryIndex" : 0,
 					"id" : "game_of_life::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-game_of_life-Debug-cb3eb23a0281991dace6.json",
+					"jsonFile" : "target-game_of_life-Debug-029d48abcaff06ec698a.json",
 					"name" : "game_of_life",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "list_platforms::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-list_platforms-Debug-5427f0ae3a6f3b97b3d6.json",
+					"name" : "list_platforms",
 					"projectIndex" : 0
 				}
 			]

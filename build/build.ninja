@@ -11,7 +11,7 @@
 # =============================================================================
 
 # =============================================================================
-# Project: OpenCL_GameOfLife
+# Project: DefCon33
 # Configurations: Debug
 # =============================================================================
 
@@ -52,7 +52,7 @@ build cmake_object_order_depends_target_game_of_life: phony || .
 build CMakeFiles/game_of_life.dir/src/main.c.o: C_COMPILER__game_of_life_unscanned_Debug /Users/acz/defcon33/src/main.c || cmake_object_order_depends_target_game_of_life
   CONFIG = Debug
   DEP_FILE = CMakeFiles/game_of_life.dir/src/main.c.o.d
-  FLAGS = -g
+  FLAGS = -g -std=gnu99
   INCLUDES = -I/usr/local/opt/opencl-headers/include
   OBJECT_DIR = CMakeFiles/game_of_life.dir
   OBJECT_FILE_DIR = CMakeFiles/game_of_life.dir/src
@@ -75,6 +75,41 @@ build game_of_life: C_EXECUTABLE_LINKER__game_of_life_Debug CMakeFiles/game_of_l
   PRE_LINK = :
   TARGET_FILE = game_of_life
   TARGET_PDB = game_of_life.dbg
+
+# =============================================================================
+# Object build statements for EXECUTABLE target list_platforms
+
+
+#############################################
+# Order-only phony target for list_platforms
+
+build cmake_object_order_depends_target_list_platforms: phony || .
+
+build CMakeFiles/list_platforms.dir/src/list_platforms.c.o: C_COMPILER__list_platforms_unscanned_Debug /Users/acz/defcon33/src/list_platforms.c || cmake_object_order_depends_target_list_platforms
+  CONFIG = Debug
+  DEP_FILE = CMakeFiles/list_platforms.dir/src/list_platforms.c.o.d
+  FLAGS = -g -std=gnu99
+  INCLUDES = -I/usr/local/opt/opencl-headers/include
+  OBJECT_DIR = CMakeFiles/list_platforms.dir
+  OBJECT_FILE_DIR = CMakeFiles/list_platforms.dir/src
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target list_platforms
+
+
+#############################################
+# Link the executable list_platforms
+
+build list_platforms: C_EXECUTABLE_LINKER__list_platforms_Debug CMakeFiles/list_platforms.dir/src/list_platforms.c.o
+  CONFIG = Debug
+  FLAGS = -g
+  LINK_FLAGS = -framework OpenCL
+  OBJECT_DIR = CMakeFiles/list_platforms.dir
+  POST_BUILD = :
+  PRE_LINK = :
+  TARGET_FILE = list_platforms
+  TARGET_PDB = list_platforms.dbg
 
 
 #############################################
@@ -111,7 +146,7 @@ build rebuild_cache: phony CMakeFiles/rebuild_cache.util
 #############################################
 # Folder: /Users/acz/defcon33/build
 
-build all: phony game_of_life
+build all: phony game_of_life list_platforms
 
 # =============================================================================
 # Built-in targets

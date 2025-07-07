@@ -130,7 +130,7 @@ CMAKE_PROJECT_DESCRIPTION:STATIC=
 CMAKE_PROJECT_HOMEPAGE_URL:STATIC=
 
 //Value Computed by CMake
-CMAKE_PROJECT_NAME:STATIC=OpenCL_GameOfLife
+CMAKE_PROJECT_NAME:STATIC=DefCon33
 
 //Path to a program.
 CMAKE_RANLIB:FILEPATH=/usr/bin/ranlib
@@ -208,6 +208,15 @@ CURSES_INCLUDE_PATH:PATH=/Applications/Xcode.app/Contents/Developer/Platforms/Ma
 
 //Path to a library.
 CURSES_NCURSES_LIBRARY:FILEPATH=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/libncurses.tbd
+
+//Value Computed by CMake
+DefCon33_BINARY_DIR:STATIC=/Users/acz/defcon33/build
+
+//Value Computed by CMake
+DefCon33_IS_TOP_LEVEL:STATIC=ON
+
+//Value Computed by CMake
+DefCon33_SOURCE_DIR:STATIC=/Users/acz/defcon33
 
 //Value Computed by CMake
 OpenCL_GameOfLife_BINARY_DIR:STATIC=/Users/acz/defcon33/build

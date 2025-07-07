@@ -1,8 +1,14 @@
 [
 {
   "directory": "/Users/acz/defcon33/build",
-  "command": "/usr/bin/clang -I/usr/local/opt/opencl-headers/include -g -o CMakeFiles/game_of_life.dir/src/main.c.o -c /Users/acz/defcon33/src/main.c",
+  "command": "/usr/bin/clang -I/usr/local/opt/opencl-headers/include -g -std=gnu99 -o CMakeFiles/game_of_life.dir/src/main.c.o -c /Users/acz/defcon33/src/main.c",
   "file": "/Users/acz/defcon33/src/main.c",
   "output": "CMakeFiles/game_of_life.dir/src/main.c.o"
+},
+{
+  "directory": "/Users/acz/defcon33/build",
+  "command": "/usr/bin/clang -I/usr/local/opt/opencl-headers/include -g -std=gnu99 -o CMakeFiles/list_platforms.dir/src/list_platforms.c.o -c /Users/acz/defcon33/src/list_platforms.c",
+  "file": "/Users/acz/defcon33/src/list_platforms.c",
+  "output": "CMakeFiles/list_platforms.dir/src/list_platforms.c.o"
 }
 ]

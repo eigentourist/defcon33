@@ -763,7 +763,7 @@
 				}
 			],
 			"type" : "STATIC",
-			"value" : "OpenCL_GameOfLife"
+			"value" : "DefCon33"
 		},
 		{
 			"name" : "CMAKE_RANLIB",
@@ -1124,6 +1124,42 @@
 			],
 			"type" : "FILEPATH",
 			"value" : "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/libncurses.tbd"
+		},
+		{
+			"name" : "DefCon33_BINARY_DIR",
+			"properties" : 
+			[
+				{
+					"name" : "HELPSTRING",
+					"value" : "Value Computed by CMake"
+				}
+			],
+			"type" : "STATIC",
+			"value" : "/Users/acz/defcon33/build"
+		},
+		{
+			"name" : "DefCon33_IS_TOP_LEVEL",
+			"properties" : 
+			[
+				{
+					"name" : "HELPSTRING",
+					"value" : "Value Computed by CMake"
+				}
+			],
+			"type" : "STATIC",
+			"value" : "ON"
+		},
+		{
+			"name" : "DefCon33_SOURCE_DIR",
+			"properties" : 
+			[
+				{
+					"name" : "HELPSTRING",
+					"value" : "Value Computed by CMake"
+				}
+			],
+			"type" : "STATIC",
+			"value" : "/Users/acz/defcon33"
 		},
 		{
 			"name" : "FIND_PACKAGE_MESSAGE_DETAILS_Curses",

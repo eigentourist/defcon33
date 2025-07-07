@@ -1,28 +1,38 @@
 cmake_minimum_required(VERSION 3.10)
-project(OpenCL_GameOfLife C)
+project(DefCon33 C)
 
+set(CMAKE_C_STANDARD 99)
+
+# --- game_of_life executable ---
 add_executable(game_of_life src/main.c)
 
-# --- OpenCL setup ---
+# --- list_platforms executable ---
+add_executable(list_platforms src/list_platforms.c)
+
+# --- Platform-specific OpenCL setup ---
 if(APPLE)
     message(STATUS "Detected macOS — using Homebrew OpenCL headers and system framework")
 
-    # Intel Macs (Homebrew installed under /usr/local)
+    # Intel Macs (default Homebrew path)
     target_include_directories(game_of_life PRIVATE /usr/local/opt/opencl-headers/include)
+    target_include_directories(list_platforms PRIVATE /usr/local/opt/opencl-headers/include)
 
-    # Uncomment for Apple Silicon:
+    # Apple Silicon (if needed):
     # target_include_directories(game_of_life PRIVATE /opt/homebrew/opt/opencl-headers/include)
+    # target_include_directories(list_platforms PRIVATE /opt/homebrew/opt/opencl-headers/include)
 
     # Link against macOS OpenCL framework
     target_link_options(game_of_life PRIVATE "-framework" "OpenCL")
+    target_link_options(list_platforms PRIVATE "-framework" "OpenCL")
 
 else()
-    # Linux or Windows — expect OpenCL via package manager or SDK
+    # Linux or Windows
     find_package(OpenCL REQUIRED)
     target_link_libraries(game_of_life OpenCL::OpenCL)
+    target_link_libraries(list_platforms OpenCL::OpenCL)
 endif()
 
-# --- ncurses support ---
+# --- ncurses (only needed by game_of_life) ---
 find_package(Curses REQUIRED)
 include_directories(${CURSES_INCLUDE_DIR})
 target_link_libraries(game_of_life ${CURSES_LIBRARIES})
