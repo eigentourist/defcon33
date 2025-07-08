@@ -1,9 +1,15 @@
 # ninja log v7
 3	168	1751862827078430796	CMakeFiles/game_of_life.dir/src/main.c.o	47602e94534cc076
 168	691	1751862827243847717	game_of_life	40ee1b842fe53d5d
-4	1592	1751865182565708572	build.ninja	d24cebde80ae3507
-4	1592	1751865182562602859	/Users/acz/defcon33/build/cmake_install.cmake	d24cebde80ae3507
-1	136	1751865198864608720	CMakeFiles/list_platforms.dir/src/list_platforms.c.o	8c0d3fe2380b4c3c
-136	641	1751865199000266053	list_platforms	3336f911a38dec85
+4	1592	1751951291010946178	build.ninja	d24cebde80ae3507
+4	1592	1751951291008757282	/Users/acz/defcon33/build/cmake_install.cmake	d24cebde80ae3507
 2	145	1751865688060260245	CMakeFiles/list_platforms.dir/src/list_platforms.c.o	8c0d3fe2380b4c3c
 146	699	1751865688203624919	list_platforms	3336f911a38dec85
+3	649	1751951314688464612	CMakeFiles/perceptron_cpu.dir/src/perceptron_cpu.c.o	20541175e0411eb8
+650	1785	1751951315334906631	perceptron_cpu	86960c7ef00b9bea
+3	226	1751952223001182322	CMakeFiles/perceptron_opencl.dir/src/perceptron_opencl.c.o	c1c5d26d3ad2814d
+227	775	1751952223224453001	perceptron_opencl	1faf604d00589be6
+6	222	1751952614726058068	CMakeFiles/perceptron_opencl.dir/src/perceptron_opencl.c.o	c1c5d26d3ad2814d
+223	758	1751952614942674543	perceptron_opencl	1faf604d00589be6
+2	126	1751952659821002531	CMakeFiles/perceptron_opencl.dir/src/perceptron_opencl.c.o	c1c5d26d3ad2814d
+127	645	1751952659945539279	perceptron_opencl	1faf604d00589be6
