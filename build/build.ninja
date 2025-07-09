@@ -212,6 +212,41 @@ build ml_perceptron_cpu: C_EXECUTABLE_LINKER__ml_perceptron_cpu_Debug CMakeFiles
   TARGET_FILE = ml_perceptron_cpu
   TARGET_PDB = ml_perceptron_cpu.dbg
 
+# =============================================================================
+# Object build statements for EXECUTABLE target ml_perceptron_opencl
+
+
+#############################################
+# Order-only phony target for ml_perceptron_opencl
+
+build cmake_object_order_depends_target_ml_perceptron_opencl: phony || .
+
+build CMakeFiles/ml_perceptron_opencl.dir/src/ml_perceptron_opencl.c.o: C_COMPILER__ml_perceptron_opencl_unscanned_Debug /Users/acz/defcon33/src/ml_perceptron_opencl.c || cmake_object_order_depends_target_ml_perceptron_opencl
+  CONFIG = Debug
+  DEP_FILE = CMakeFiles/ml_perceptron_opencl.dir/src/ml_perceptron_opencl.c.o.d
+  FLAGS = -g -std=gnu99
+  INCLUDES = -I/usr/local/opt/opencl-headers/include
+  OBJECT_DIR = CMakeFiles/ml_perceptron_opencl.dir
+  OBJECT_FILE_DIR = CMakeFiles/ml_perceptron_opencl.dir/src
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target ml_perceptron_opencl
+
+
+#############################################
+# Link the executable ml_perceptron_opencl
+
+build ml_perceptron_opencl: C_EXECUTABLE_LINKER__ml_perceptron_opencl_Debug CMakeFiles/ml_perceptron_opencl.dir/src/ml_perceptron_opencl.c.o
+  CONFIG = Debug
+  FLAGS = -g
+  LINK_FLAGS = -framework OpenCL
+  OBJECT_DIR = CMakeFiles/ml_perceptron_opencl.dir
+  POST_BUILD = :
+  PRE_LINK = :
+  TARGET_FILE = ml_perceptron_opencl
+  TARGET_PDB = ml_perceptron_opencl.dbg
+
 
 #############################################
 # Utility command for edit_cache
@@ -247,7 +282,7 @@ build rebuild_cache: phony CMakeFiles/rebuild_cache.util
 #############################################
 # Folder: /Users/acz/defcon33/build
 
-build all: phony game_of_life list_platforms perceptron_cpu perceptron_opencl ml_perceptron_cpu
+build all: phony game_of_life list_platforms perceptron_cpu perceptron_opencl ml_perceptron_cpu ml_perceptron_opencl
 
 # =============================================================================
 # Built-in targets
