@@ -41,6 +41,74 @@ include CMakeFiles/rules.ninja
 
 cmake_ninja_workdir = /Users/acz/defcon33/build/
 # =============================================================================
+# Object build statements for EXECUTABLE target matrix_mult_cpu
+
+
+#############################################
+# Order-only phony target for matrix_mult_cpu
+
+build cmake_object_order_depends_target_matrix_mult_cpu: phony || .
+
+build CMakeFiles/matrix_mult_cpu.dir/src/matrix_mult_cpu.c.o: C_COMPILER__matrix_mult_cpu_unscanned_Debug /Users/acz/defcon33/src/matrix_mult_cpu.c || cmake_object_order_depends_target_matrix_mult_cpu
+  CONFIG = Debug
+  DEP_FILE = CMakeFiles/matrix_mult_cpu.dir/src/matrix_mult_cpu.c.o.d
+  FLAGS = -g -std=gnu99
+  OBJECT_DIR = CMakeFiles/matrix_mult_cpu.dir
+  OBJECT_FILE_DIR = CMakeFiles/matrix_mult_cpu.dir/src
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target matrix_mult_cpu
+
+
+#############################################
+# Link the executable matrix_mult_cpu
+
+build matrix_mult_cpu: C_EXECUTABLE_LINKER__matrix_mult_cpu_Debug CMakeFiles/matrix_mult_cpu.dir/src/matrix_mult_cpu.c.o
+  CONFIG = Debug
+  FLAGS = -g
+  OBJECT_DIR = CMakeFiles/matrix_mult_cpu.dir
+  POST_BUILD = :
+  PRE_LINK = :
+  TARGET_FILE = matrix_mult_cpu
+  TARGET_PDB = matrix_mult_cpu.dbg
+
+# =============================================================================
+# Object build statements for EXECUTABLE target matrix_mult_opencl
+
+
+#############################################
+# Order-only phony target for matrix_mult_opencl
+
+build cmake_object_order_depends_target_matrix_mult_opencl: phony || .
+
+build CMakeFiles/matrix_mult_opencl.dir/src/matrix_mult_opencl.c.o: C_COMPILER__matrix_mult_opencl_unscanned_Debug /Users/acz/defcon33/src/matrix_mult_opencl.c || cmake_object_order_depends_target_matrix_mult_opencl
+  CONFIG = Debug
+  DEP_FILE = CMakeFiles/matrix_mult_opencl.dir/src/matrix_mult_opencl.c.o.d
+  FLAGS = -g -std=gnu99
+  INCLUDES = -I/usr/local/opt/opencl-headers/include
+  OBJECT_DIR = CMakeFiles/matrix_mult_opencl.dir
+  OBJECT_FILE_DIR = CMakeFiles/matrix_mult_opencl.dir/src
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target matrix_mult_opencl
+
+
+#############################################
+# Link the executable matrix_mult_opencl
+
+build matrix_mult_opencl: C_EXECUTABLE_LINKER__matrix_mult_opencl_Debug CMakeFiles/matrix_mult_opencl.dir/src/matrix_mult_opencl.c.o
+  CONFIG = Debug
+  FLAGS = -g
+  LINK_FLAGS = -framework OpenCL
+  OBJECT_DIR = CMakeFiles/matrix_mult_opencl.dir
+  POST_BUILD = :
+  PRE_LINK = :
+  TARGET_FILE = matrix_mult_opencl
+  TARGET_PDB = matrix_mult_opencl.dbg
+
+# =============================================================================
 # Object build statements for EXECUTABLE target game_of_life
 
 
@@ -282,7 +350,7 @@ build rebuild_cache: phony CMakeFiles/rebuild_cache.util
 #############################################
 # Folder: /Users/acz/defcon33/build
 
-build all: phony game_of_life list_platforms perceptron_cpu perceptron_opencl ml_perceptron_cpu ml_perceptron_opencl
+build all: phony matrix_mult_cpu matrix_mult_opencl game_of_life list_platforms perceptron_cpu perceptron_opencl ml_perceptron_cpu ml_perceptron_opencl
 
 # =============================================================================
 # Built-in targets

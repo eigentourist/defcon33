@@ -2,7 +2,7 @@
 	"artifacts" : 
 	[
 		{
-			"path" : "ml_perceptron_cpu"
+			"path" : "matrix_mult_cpu"
 		}
 	],
 	"backtrace" : 1,
@@ -24,7 +24,7 @@
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 17,
+				"line" : 7,
 				"parent" : 0
 			}
 		]
@@ -53,7 +53,7 @@
 			]
 		}
 	],
-	"id" : "ml_perceptron_cpu::@6890427a1f51a3e7e1df",
+	"id" : "matrix_mult_cpu::@6890427a1f51a3e7e1df",
 	"link" : 
 	{
 		"commandFragments" : 
@@ -65,8 +65,8 @@
 		],
 		"language" : "C"
 	},
-	"name" : "ml_perceptron_cpu",
-	"nameOnDisk" : "ml_perceptron_cpu",
+	"name" : "matrix_mult_cpu",
+	"nameOnDisk" : "matrix_mult_cpu",
 	"paths" : 
 	{
 		"build" : ".",
@@ -87,7 +87,7 @@
 		{
 			"backtrace" : 1,
 			"compileGroupIndex" : 0,
-			"path" : "src/ml_perceptron_cpu.c",
+			"path" : "src/matrix_mult_cpu.c",
 			"sourceGroupIndex" : 0
 		}
 	],

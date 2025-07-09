@@ -1,3 +1,5 @@
+/Users/acz/defcon33/build/CMakeFiles/matrix_mult_cpu.dir
+/Users/acz/defcon33/build/CMakeFiles/matrix_mult_opencl.dir
 /Users/acz/defcon33/build/CMakeFiles/game_of_life.dir
 /Users/acz/defcon33/build/CMakeFiles/list_platforms.dir
 /Users/acz/defcon33/build/CMakeFiles/perceptron_cpu.dir
