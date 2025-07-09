@@ -2,7 +2,7 @@
 	"artifacts" : 
 	[
 		{
-			"path" : "game_of_life"
+			"path" : "list_platforms"
 		}
 	],
 	"backtrace" : 1,
@@ -12,7 +12,6 @@
 		[
 			"add_executable",
 			"target_link_options",
-			"target_link_libraries",
 			"target_include_directories"
 		],
 		"files" : 
@@ -27,25 +26,19 @@
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 7,
+				"line" : 10,
 				"parent" : 0
 			},
 			{
 				"command" : 1,
 				"file" : 0,
-				"line" : 32,
+				"line" : 36,
 				"parent" : 0
 			},
 			{
 				"command" : 2,
 				"file" : 0,
-				"line" : 46,
-				"parent" : 0
-			},
-			{
-				"command" : 3,
-				"file" : 0,
-				"line" : 22,
+				"line" : 26,
 				"parent" : 0
 			}
 		]
@@ -62,7 +55,7 @@
 			"includes" : 
 			[
 				{
-					"backtrace" : 4,
+					"backtrace" : 3,
 					"path" : "/usr/local/opt/opencl-headers/include"
 				}
 			],
@@ -81,7 +74,7 @@
 			]
 		}
 	],
-	"id" : "game_of_life::@6890427a1f51a3e7e1df",
+	"id" : "list_platforms::@6890427a1f51a3e7e1df",
 	"link" : 
 	{
 		"commandFragments" : 
@@ -99,22 +92,12 @@
 				"backtrace" : 2,
 				"fragment" : "OpenCL",
 				"role" : "flags"
-			},
-			{
-				"backtrace" : 3,
-				"fragment" : "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/libcurses.tbd",
-				"role" : "libraries"
-			},
-			{
-				"backtrace" : 3,
-				"fragment" : "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/libform.tbd",
-				"role" : "libraries"
 			}
 		],
 		"language" : "C"
 	},
-	"name" : "game_of_life",
-	"nameOnDisk" : "game_of_life",
+	"name" : "list_platforms",
+	"nameOnDisk" : "list_platforms",
 	"paths" : 
 	{
 		"build" : ".",
@@ -135,7 +118,7 @@
 		{
 			"backtrace" : 1,
 			"compileGroupIndex" : 0,
-			"path" : "src/main.c",
+			"path" : "src/list_platforms.c",
 			"sourceGroupIndex" : 0
 		}
 	],

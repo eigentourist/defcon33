@@ -13,6 +13,9 @@ add_executable(list_platforms src/list_platforms.c)
 add_executable(perceptron_cpu src/perceptron_cpu.c)
 add_executable(perceptron_opencl src/perceptron_opencl.c)
 
+# -- Multi-layer perceptron --
+add_executable(ml_perceptron_cpu src/ml_perceptron_cpu.c)
+
 
 # --- Platform-specific OpenCL setup ---
 if(APPLE)

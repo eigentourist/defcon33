@@ -18,7 +18,8 @@
 						0,
 						1,
 						2,
-						3
+						3,
+						4
 					]
 				}
 			],
@@ -36,7 +37,8 @@
 						0,
 						1,
 						2,
-						3
+						3,
+						4
 					]
 				}
 			],
@@ -45,15 +47,22 @@
 				{
 					"directoryIndex" : 0,
 					"id" : "game_of_life::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-game_of_life-Debug-5514fa0debf4d8837a0e.json",
+					"jsonFile" : "target-game_of_life-Debug-7d97ba019d51762f0409.json",
 					"name" : "game_of_life",
 					"projectIndex" : 0
 				},
 				{
 					"directoryIndex" : 0,
 					"id" : "list_platforms::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-list_platforms-Debug-66ac3002cb51bf41c822.json",
+					"jsonFile" : "target-list_platforms-Debug-df32bd6a7fbcad2f0fe4.json",
 					"name" : "list_platforms",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ml_perceptron_cpu::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ml_perceptron_cpu-Debug-cd8b41c22e1457b2e856.json",
+					"name" : "ml_perceptron_cpu",
 					"projectIndex" : 0
 				},
 				{
@@ -66,7 +75,7 @@
 				{
 					"directoryIndex" : 0,
 					"id" : "perceptron_opencl::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-perceptron_opencl-Debug-87323f1206c91c6201ac.json",
+					"jsonFile" : "target-perceptron_opencl-Debug-59961189ad5f195739d2.json",
 					"name" : "perceptron_opencl",
 					"projectIndex" : 0
 				}

@@ -179,6 +179,39 @@ build perceptron_opencl: C_EXECUTABLE_LINKER__perceptron_opencl_Debug CMakeFiles
   TARGET_FILE = perceptron_opencl
   TARGET_PDB = perceptron_opencl.dbg
 
+# =============================================================================
+# Object build statements for EXECUTABLE target ml_perceptron_cpu
+
+
+#############################################
+# Order-only phony target for ml_perceptron_cpu
+
+build cmake_object_order_depends_target_ml_perceptron_cpu: phony || .
+
+build CMakeFiles/ml_perceptron_cpu.dir/src/ml_perceptron_cpu.c.o: C_COMPILER__ml_perceptron_cpu_unscanned_Debug /Users/acz/defcon33/src/ml_perceptron_cpu.c || cmake_object_order_depends_target_ml_perceptron_cpu
+  CONFIG = Debug
+  DEP_FILE = CMakeFiles/ml_perceptron_cpu.dir/src/ml_perceptron_cpu.c.o.d
+  FLAGS = -g -std=gnu99
+  OBJECT_DIR = CMakeFiles/ml_perceptron_cpu.dir
+  OBJECT_FILE_DIR = CMakeFiles/ml_perceptron_cpu.dir/src
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target ml_perceptron_cpu
+
+
+#############################################
+# Link the executable ml_perceptron_cpu
+
+build ml_perceptron_cpu: C_EXECUTABLE_LINKER__ml_perceptron_cpu_Debug CMakeFiles/ml_perceptron_cpu.dir/src/ml_perceptron_cpu.c.o
+  CONFIG = Debug
+  FLAGS = -g
+  OBJECT_DIR = CMakeFiles/ml_perceptron_cpu.dir
+  POST_BUILD = :
+  PRE_LINK = :
+  TARGET_FILE = ml_perceptron_cpu
+  TARGET_PDB = ml_perceptron_cpu.dbg
+
 
 #############################################
 # Utility command for edit_cache
@@ -214,7 +247,7 @@ build rebuild_cache: phony CMakeFiles/rebuild_cache.util
 #############################################
 # Folder: /Users/acz/defcon33/build
 
-build all: phony game_of_life list_platforms perceptron_cpu perceptron_opencl
+build all: phony game_of_life list_platforms perceptron_cpu perceptron_opencl ml_perceptron_cpu
 
 # =============================================================================
 # Built-in targets
