@@ -21,6 +21,10 @@ add_executable(perceptron_opencl src/perceptron_opencl.c)
 add_executable(ml_perceptron_cpu src/ml_perceptron_cpu.c)
 add_executable(ml_perceptron_opencl src/ml_perceptron_opencl.c)
 
+# -- First convolutional neural nets, based on multi-player perceptrons --
+add_executable(cnn_cpu src/cnn_cpu.c)
+add_executable(cnn_opencl src/cnn_opencl.c)
+
 
 # --- Platform-specific OpenCL setup ---
 if(APPLE)
@@ -32,6 +36,7 @@ if(APPLE)
     target_include_directories(list_platforms PRIVATE /usr/local/opt/opencl-headers/include)
     target_include_directories(perceptron_opencl PRIVATE /usr/local/opt/opencl-headers/include)
     target_include_directories(ml_perceptron_opencl PRIVATE /usr/local/opt/opencl-headers/include)
+    target_include_directories(cnn_opencl PRIVATE /usr/local/opt/opencl-headers/include)
 
     # Apple Silicon (if needed):
     # target_include_directories(matrix_mult_opencl PRIVATE /opt/homebrew/opt/opencl-headers/include)
@@ -39,6 +44,7 @@ if(APPLE)
     # target_include_directories(list_platforms PRIVATE /opt/homebrew/opt/opencl-headers/include)
     # target_include_directories(perceptron_opencl PRIVATE /opt/homebrew/opt/opencl-headers/include)
     # target_include_directories(ml_perceptron_opencl PRIVATE /opt/homebrew/opt/opencl-headers/include)
+    # target_include_directories(cnn_opencl PRIVATE /opt/homebrew/opt/opencl-headers/include)
 
     # Link against macOS OpenCL framework
     target_link_options(matrix_mult_opencl PRIVATE "-framework" "OpenCL")
@@ -46,6 +52,7 @@ if(APPLE)
     target_link_options(list_platforms PRIVATE "-framework" "OpenCL")
     target_link_options(perceptron_opencl PRIVATE "-framework" "OpenCL")
     target_link_options(ml_perceptron_opencl PRIVATE "-framework" "OpenCL")
+    target_link_options(cnn_opencl PRIVATE "-framework" "OpenCL")
 else()
     # Linux or Windows
     find_package(OpenCL REQUIRED)
@@ -54,6 +61,7 @@ else()
     target_link_libraries(list_platforms OpenCL::OpenCL)
     target_link_libraries(perceptron_opencl OpenCL::OpenCL)
     target_link_libraries(ml_perceptron_opencl OpenCL::OpenCL)
+    target_link_libraries(cnn_opencl OpenCL::OpenCL)
 endif()
 
 # --- ncurses (only needed by game_of_life) ---

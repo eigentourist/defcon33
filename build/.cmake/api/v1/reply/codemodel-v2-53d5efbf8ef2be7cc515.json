@@ -22,7 +22,9 @@
 						4,
 						5,
 						6,
-						7
+						7,
+						8,
+						9
 					]
 				}
 			],
@@ -44,7 +46,9 @@
 						4,
 						5,
 						6,
-						7
+						7,
+						8,
+						9
 					]
 				}
 			],
@@ -52,15 +56,29 @@
 			[
 				{
 					"directoryIndex" : 0,
+					"id" : "cnn_cpu::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-cnn_cpu-Debug-9be4e1702cb29955a6d4.json",
+					"name" : "cnn_cpu",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "cnn_opencl::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-cnn_opencl-Debug-14b7dac83c825ab19cd2.json",
+					"name" : "cnn_opencl",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
 					"id" : "game_of_life::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-game_of_life-Debug-d8c5c05c451720d5e439.json",
+					"jsonFile" : "target-game_of_life-Debug-c705f04fc0082a0aa26f.json",
 					"name" : "game_of_life",
 					"projectIndex" : 0
 				},
 				{
 					"directoryIndex" : 0,
 					"id" : "list_platforms::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-list_platforms-Debug-3e0cca6254c6290804be.json",
+					"jsonFile" : "target-list_platforms-Debug-84bd0d454354e53a07d8.json",
 					"name" : "list_platforms",
 					"projectIndex" : 0
 				},
@@ -74,7 +92,7 @@
 				{
 					"directoryIndex" : 0,
 					"id" : "matrix_mult_opencl::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-matrix_mult_opencl-Debug-2b57ea9d62e42c1f4564.json",
+					"jsonFile" : "target-matrix_mult_opencl-Debug-3421137ecd2b7d741409.json",
 					"name" : "matrix_mult_opencl",
 					"projectIndex" : 0
 				},
@@ -88,7 +106,7 @@
 				{
 					"directoryIndex" : 0,
 					"id" : "ml_perceptron_opencl::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-ml_perceptron_opencl-Debug-90632dd01c5b557a629e.json",
+					"jsonFile" : "target-ml_perceptron_opencl-Debug-54dbe944824501fec05a.json",
 					"name" : "ml_perceptron_opencl",
 					"projectIndex" : 0
 				},
@@ -102,7 +120,7 @@
 				{
 					"directoryIndex" : 0,
 					"id" : "perceptron_opencl::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-perceptron_opencl-Debug-7bc5583031f11b0c85f8.json",
+					"jsonFile" : "target-perceptron_opencl-Debug-c1081b94b58a527ce412.json",
 					"name" : "perceptron_opencl",
 					"projectIndex" : 0
 				}

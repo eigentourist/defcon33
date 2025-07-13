@@ -315,6 +315,74 @@ build ml_perceptron_opencl: C_EXECUTABLE_LINKER__ml_perceptron_opencl_Debug CMak
   TARGET_FILE = ml_perceptron_opencl
   TARGET_PDB = ml_perceptron_opencl.dbg
 
+# =============================================================================
+# Object build statements for EXECUTABLE target cnn_cpu
+
+
+#############################################
+# Order-only phony target for cnn_cpu
+
+build cmake_object_order_depends_target_cnn_cpu: phony || .
+
+build CMakeFiles/cnn_cpu.dir/src/cnn_cpu.c.o: C_COMPILER__cnn_cpu_unscanned_Debug /Users/acz/defcon33/src/cnn_cpu.c || cmake_object_order_depends_target_cnn_cpu
+  CONFIG = Debug
+  DEP_FILE = CMakeFiles/cnn_cpu.dir/src/cnn_cpu.c.o.d
+  FLAGS = -g -std=gnu99
+  OBJECT_DIR = CMakeFiles/cnn_cpu.dir
+  OBJECT_FILE_DIR = CMakeFiles/cnn_cpu.dir/src
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target cnn_cpu
+
+
+#############################################
+# Link the executable cnn_cpu
+
+build cnn_cpu: C_EXECUTABLE_LINKER__cnn_cpu_Debug CMakeFiles/cnn_cpu.dir/src/cnn_cpu.c.o
+  CONFIG = Debug
+  FLAGS = -g
+  OBJECT_DIR = CMakeFiles/cnn_cpu.dir
+  POST_BUILD = :
+  PRE_LINK = :
+  TARGET_FILE = cnn_cpu
+  TARGET_PDB = cnn_cpu.dbg
+
+# =============================================================================
+# Object build statements for EXECUTABLE target cnn_opencl
+
+
+#############################################
+# Order-only phony target for cnn_opencl
+
+build cmake_object_order_depends_target_cnn_opencl: phony || .
+
+build CMakeFiles/cnn_opencl.dir/src/cnn_opencl.c.o: C_COMPILER__cnn_opencl_unscanned_Debug /Users/acz/defcon33/src/cnn_opencl.c || cmake_object_order_depends_target_cnn_opencl
+  CONFIG = Debug
+  DEP_FILE = CMakeFiles/cnn_opencl.dir/src/cnn_opencl.c.o.d
+  FLAGS = -g -std=gnu99
+  INCLUDES = -I/usr/local/opt/opencl-headers/include
+  OBJECT_DIR = CMakeFiles/cnn_opencl.dir
+  OBJECT_FILE_DIR = CMakeFiles/cnn_opencl.dir/src
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target cnn_opencl
+
+
+#############################################
+# Link the executable cnn_opencl
+
+build cnn_opencl: C_EXECUTABLE_LINKER__cnn_opencl_Debug CMakeFiles/cnn_opencl.dir/src/cnn_opencl.c.o
+  CONFIG = Debug
+  FLAGS = -g
+  LINK_FLAGS = -framework OpenCL
+  OBJECT_DIR = CMakeFiles/cnn_opencl.dir
+  POST_BUILD = :
+  PRE_LINK = :
+  TARGET_FILE = cnn_opencl
+  TARGET_PDB = cnn_opencl.dbg
+
 
 #############################################
 # Utility command for edit_cache
@@ -350,7 +418,7 @@ build rebuild_cache: phony CMakeFiles/rebuild_cache.util
 #############################################
 # Folder: /Users/acz/defcon33/build
 
-build all: phony matrix_mult_cpu matrix_mult_opencl game_of_life list_platforms perceptron_cpu perceptron_opencl ml_perceptron_cpu ml_perceptron_opencl
+build all: phony matrix_mult_cpu matrix_mult_opencl game_of_life list_platforms perceptron_cpu perceptron_opencl ml_perceptron_cpu ml_perceptron_opencl cnn_cpu cnn_opencl
 
 # =============================================================================
 # Built-in targets

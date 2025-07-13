@@ -46,5 +46,17 @@
   "command": "/usr/bin/clang -I/usr/local/opt/opencl-headers/include -g -std=gnu99 -o CMakeFiles/ml_perceptron_opencl.dir/src/ml_perceptron_opencl.c.o -c /Users/acz/defcon33/src/ml_perceptron_opencl.c",
   "file": "/Users/acz/defcon33/src/ml_perceptron_opencl.c",
   "output": "CMakeFiles/ml_perceptron_opencl.dir/src/ml_perceptron_opencl.c.o"
+},
+{
+  "directory": "/Users/acz/defcon33/build",
+  "command": "/usr/bin/clang -g -std=gnu99 -o CMakeFiles/cnn_cpu.dir/src/cnn_cpu.c.o -c /Users/acz/defcon33/src/cnn_cpu.c",
+  "file": "/Users/acz/defcon33/src/cnn_cpu.c",
+  "output": "CMakeFiles/cnn_cpu.dir/src/cnn_cpu.c.o"
+},
+{
+  "directory": "/Users/acz/defcon33/build",
+  "command": "/usr/bin/clang -I/usr/local/opt/opencl-headers/include -g -std=gnu99 -o CMakeFiles/cnn_opencl.dir/src/cnn_opencl.c.o -c /Users/acz/defcon33/src/cnn_opencl.c",
+  "file": "/Users/acz/defcon33/src/cnn_opencl.c",
+  "output": "CMakeFiles/cnn_opencl.dir/src/cnn_opencl.c.o"
 }
 ]
