@@ -53,6 +53,11 @@ int main() {
     for (int i = 0; i < DENSE_OUTPUT_SIZE; ++i)
         dense_biases[i] = (float)i * 0.1f;
 
+    // Paranoia test: force a negative bias and a negative weight
+    // dense_biases[0] = -2.0f;
+    // dense_weights[0 * DENSE_INPUT_SIZE + 0] = -0.5f;
+
+
     printf("First few input values:\n");
     for (int i = 0; i < 8; ++i)
         printf("%.1f ", input[i]);
@@ -60,6 +65,12 @@ int main() {
     for (int i = 0; i < 9; ++i)
         printf("%.3f ", kernel[i]);
     printf("\n");
+    printf("First few bias values:\n");
+    for (int i = 0; i < DENSE_OUTPUT_SIZE; ++i) {
+        printf("%.3f ", dense_biases[i]);
+    }
+    printf("\n");
+
 
     cl_platform_id platform;
     cl_device_id device;
@@ -82,22 +93,14 @@ int main() {
     size_t pool_output_bytes = POOL_OUTPUT_SIZE * POOL_OUTPUT_SIZE * sizeof(float);
     size_t dense_output_bytes = DENSE_OUTPUT_SIZE * sizeof(float);
 
-    cl_mem input_buf = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-        sizeof(float) * INPUT_SIZE * INPUT_SIZE, input, &err);
-    cl_mem kernel_buf = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-        sizeof(float) * KERNEL_SIZE * KERNEL_SIZE, kernel, &err);
-    cl_mem conv_output_buf = clCreateBuffer(context, CL_MEM_READ_WRITE,
-        conv_output_bytes, NULL, &err);
-    cl_mem pool_output_buf = clCreateBuffer(context, CL_MEM_READ_WRITE,
-        pool_output_bytes, NULL, &err);
-    cl_mem dense_weights_buf = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-        sizeof(float) * DENSE_INPUT_SIZE * DENSE_OUTPUT_SIZE, dense_weights, &err);
-    cl_mem dense_biases_buf = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-        sizeof(float) * DENSE_OUTPUT_SIZE, dense_biases, &err);
-    cl_mem dense_output_buf = clCreateBuffer(context, CL_MEM_READ_WRITE,
-        dense_output_bytes, NULL, &err);
-    cl_mem softmax_output_buf = clCreateBuffer(context, CL_MEM_WRITE_ONLY,
-        dense_output_bytes, NULL, &err);
+    cl_mem input_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(float) * INPUT_SIZE * INPUT_SIZE, input, &err);
+    cl_mem kernel_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(float) * KERNEL_SIZE * KERNEL_SIZE, kernel, &err);
+    cl_mem conv_output_buf = clCreateBuffer(context, CL_MEM_READ_WRITE, conv_output_bytes, NULL, &err);
+    cl_mem pool_output_buf = clCreateBuffer(context, CL_MEM_READ_WRITE, pool_output_bytes, NULL, &err);
+    cl_mem dense_weights_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(float) * DENSE_INPUT_SIZE * DENSE_OUTPUT_SIZE, dense_weights, &err);
+    cl_mem dense_biases_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(float) * DENSE_OUTPUT_SIZE, dense_biases, &err);
+    cl_mem dense_output_buf = clCreateBuffer(context, CL_MEM_READ_WRITE, dense_output_bytes, NULL, &err);
+    cl_mem softmax_output_buf = clCreateBuffer(context, CL_MEM_WRITE_ONLY, dense_output_bytes, NULL, &err);
 
     int input_size_val = INPUT_SIZE;
     int kernel_size_val = KERNEL_SIZE;
@@ -141,7 +144,7 @@ int main() {
         printf("%.3f ", maxpool_output[i]);
     printf("\n");
 
-    cl_kernel dense_kernel = clCreateKernel(program, "dense", &err);
+    cl_kernel dense_kernel = clCreateKernel(program, "dense_layer", &err);
     clSetKernelArg(dense_kernel, 0, sizeof(cl_mem), &pool_output_buf);
     clSetKernelArg(dense_kernel, 1, sizeof(cl_mem), &dense_weights_buf);
     clSetKernelArg(dense_kernel, 2, sizeof(cl_mem), &dense_biases_buf);
@@ -151,6 +154,16 @@ int main() {
 
     size_t global_size_dense = DENSE_OUTPUT_SIZE;
     clEnqueueNDRangeKernel(queue, dense_kernel, 1, NULL, &global_size_dense, NULL, 0, NULL, NULL);
+    clEnqueueNDRangeKernel(queue, dense_kernel, 1, NULL, &global_size_dense, NULL, 0, NULL, NULL);
+    // clFlush(queue);
+    // clFinish(queue);
+
+
+    printf("Dense biases after kernel:\n");
+    for (int i = 0; i < DENSE_OUTPUT_SIZE; ++i)
+        printf("%.3f ", dense_biases[i]);
+    printf("\n");
+
 
     cl_kernel softmax_kernel = clCreateKernel(program, "softmax", &err);
     clSetKernelArg(softmax_kernel, 0, sizeof(cl_mem), &dense_output_buf);
@@ -158,8 +171,7 @@ int main() {
     clSetKernelArg(softmax_kernel, 2, sizeof(int), &dense_out_val);
 
     float dense_output[DENSE_OUTPUT_SIZE];
-    clEnqueueReadBuffer(queue, dense_output_buf, CL_TRUE, 0,
-    dense_output_bytes, dense_output, 0, NULL, NULL);
+    clEnqueueReadBuffer(queue, dense_output_buf, CL_TRUE, 0, dense_output_bytes, dense_output, 0, NULL, NULL);
 
     printf("Dense layer output before softmax:\n");
     for (int i = 0; i < DENSE_OUTPUT_SIZE; ++i)
