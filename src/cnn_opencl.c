@@ -13,6 +13,9 @@
 #define DENSE_INPUT_SIZE (POOL_OUTPUT_SIZE * POOL_OUTPUT_SIZE)
 #define DENSE_OUTPUT_SIZE 10
 
+// For parallelized softmax
+#define WGSIZE 64
+
 char* load_kernel_source(const char* filename) {
     FILE* fp = fopen(filename, "r");
     if (!fp) {
@@ -114,11 +117,13 @@ int main() {
     clSetKernelArg(conv_kernel, 0, sizeof(cl_mem), &input_buf);
     clSetKernelArg(conv_kernel, 1, sizeof(cl_mem), &kernel_buf);
     clSetKernelArg(conv_kernel, 2, sizeof(cl_mem), &conv_output_buf);
-    clSetKernelArg(conv_kernel, 3, sizeof(int), &input_size_val);
-    clSetKernelArg(conv_kernel, 4, sizeof(int), &kernel_size_val);
+    clSetKernelArg(conv_kernel, 3, sizeof(int), &input_size_val);           // e.g., 16
+    clSetKernelArg(conv_kernel, 4, sizeof(int), &kernel_size_val);          // e.g., 3
+    clSetKernelArg(conv_kernel, 5, sizeof(int), &conv_out_val);             // e.g., 14
 
-    size_t global_size_conv = CONV_OUTPUT_SIZE * CONV_OUTPUT_SIZE;
-    clEnqueueNDRangeKernel(queue, conv_kernel, 1, NULL, &global_size_conv, NULL, 0, NULL, NULL);
+
+    size_t global_size_conv[2] = { conv_out_val, conv_out_val };
+    clEnqueueNDRangeKernel(queue, conv_kernel, 2, NULL, global_size_conv, NULL, 0, NULL, NULL);
 
     float conv_output[CONV_OUTPUT_SIZE * CONV_OUTPUT_SIZE];
     clEnqueueReadBuffer(queue, conv_output_buf, CL_TRUE, 0, sizeof(conv_output), conv_output, 0, NULL, NULL);
@@ -155,8 +160,6 @@ int main() {
     size_t global_size_dense = DENSE_OUTPUT_SIZE;
     clEnqueueNDRangeKernel(queue, dense_kernel, 1, NULL, &global_size_dense, NULL, 0, NULL, NULL);
     clEnqueueNDRangeKernel(queue, dense_kernel, 1, NULL, &global_size_dense, NULL, 0, NULL, NULL);
-    // clFlush(queue);
-    // clFinish(queue);
 
 
     printf("Dense biases after kernel:\n");
@@ -165,7 +168,7 @@ int main() {
     printf("\n");
 
 
-    cl_kernel softmax_kernel = clCreateKernel(program, "softmax", &err);
+    cl_kernel softmax_kernel = clCreateKernel(program, "softmax_parallel", &err);
     clSetKernelArg(softmax_kernel, 0, sizeof(cl_mem), &dense_output_buf);
     clSetKernelArg(softmax_kernel, 1, sizeof(cl_mem), &softmax_output_buf);
     clSetKernelArg(softmax_kernel, 2, sizeof(int), &dense_out_val);
@@ -178,7 +181,11 @@ int main() {
         printf("%.3f ", dense_output[i]);
     printf("\n");
 
-    clEnqueueNDRangeKernel(queue, softmax_kernel, 1, NULL, &global_size_dense, NULL, 0, NULL, NULL);
+    // clEnqueueNDRangeKernel(queue, softmax_kernel, 1, NULL, &global_size_dense, NULL, 0, NULL, NULL);
+    size_t local_size = WGSIZE;
+    size_t global_size = ((dense_out_val + WGSIZE - 1) / WGSIZE) * WGSIZE;
+    clEnqueueNDRangeKernel(queue, softmax_kernel, 1, NULL, &global_size, &local_size, 0, NULL, NULL);
+
 
     float softmax_output[DENSE_OUTPUT_SIZE];
     clEnqueueReadBuffer(queue, softmax_output_buf, CL_TRUE, 0,
@@ -188,6 +195,11 @@ int main() {
     for (int i = 0; i < DENSE_OUTPUT_SIZE; ++i)
         printf("%.3f ", softmax_output[i]);
     printf("\n");
+
+    float sum = 0.0f;
+    for (int i = 0; i < DENSE_OUTPUT_SIZE; ++i) sum += softmax_output[i];
+    printf("Softmax sum: %.6f\n", sum);  // Should be almost exactly 1.0
+
 
     clReleaseMemObject(input_buf);
     clReleaseMemObject(kernel_buf);

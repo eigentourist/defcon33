@@ -1,52 +1,48 @@
+
 __kernel void conv2d(
     __global const float* input,
     __global const float* weights,
-    __global float* output) {
-
-    const int out_x = get_global_id(0);
-    const int out_y = get_global_id(1);
-
-    const int INPUT_SIZE = 16;
-    const int KERNEL_SIZE = 3;
-    const int CONV_OUTPUT_SIZE = INPUT_SIZE - KERNEL_SIZE + 1;
-
-    float sum = 0.0f;
-    for (int i = 0; i < KERNEL_SIZE; i++) {
-        for (int j = 0; j < KERNEL_SIZE; j++) {
-            int in_x = out_x + i;
-            int in_y = out_y + j;
-            sum += input[in_y * INPUT_SIZE + in_x] * weights[i * KERNEL_SIZE + j];
-        }
-    }
-    output[out_y * CONV_OUTPUT_SIZE + out_x] = fmax(sum, 0.0f); // ReLU activation
-}
-
-__kernel void maxpool2d(
-    __global const float* input,
     __global float* output,
-    const int conv_output_size,
-    const int pool_size) {
+    int input_size,
+    int kernel_size,
+    int conv_output_size) {
 
     int out_x = get_global_id(0);
     int out_y = get_global_id(1);
-    int pool_output_size = conv_output_size / pool_size;
+    if (out_x >= conv_output_size || out_y >= conv_output_size) return;
 
-    int base_x = out_x * pool_size;
-    int base_y = out_y * pool_size;
-
-    float maxval = -INFINITY;
-    for (int i = 0; i < pool_size; i++) {
-        for (int j = 0; j < pool_size; j++) {
-            int idx = (base_y + i) * conv_output_size + (base_x + j);
-            float val = input[idx];
-            if (val > maxval) maxval = val;
+    float sum = 0.0f;
+    for (int i = 0; i < kernel_size; i++) {
+        for (int j = 0; j < kernel_size; j++) {
+            int in_x = out_x + i;
+            int in_y = out_y + j;
+            sum += input[in_y * input_size + in_x] * weights[i * kernel_size + j];
         }
     }
-
-    if (out_x < pool_output_size && out_y < pool_output_size) {
-        output[out_y * pool_output_size + out_x] = maxval;
-    }
+    output[out_y * conv_output_size + out_x] = fmax(sum, 0.0f);
 }
+
+
+
+__kernel void maxpool2d(__global float* input, __global float* output,
+                        int input_size, int pool_size) {
+    int ox = get_global_id(0);
+    int oy = get_global_id(1);
+    int stride = pool_size;
+    int ix0 = ox * stride;
+    int iy0 = oy * stride;
+    float maxval = input[iy0 * input_size + ix0];
+    for (int py = 0; py < pool_size; ++py) {
+        for (int px = 0; px < pool_size; ++px) {
+            int ix = ox * stride + px;
+            int iy = oy * stride + py;
+            float v = input[iy * input_size + ix];
+            if (v > maxval) maxval = v;
+        }
+    }
+    output[oy * (input_size / pool_size) + ox] = maxval;
+}
+
 
 
 __kernel void dense_layer(__global const float* input,
@@ -89,6 +85,7 @@ __kernel void argmax(
     output[0] = max_idx;
 }
 
+
 __kernel void softmax(
     __global float* input,
     __global float* output,
@@ -119,5 +116,65 @@ __kernel void softmax(
     if (gid < length)
     {
         output[gid] = exp(input[gid] - max_val) / sum;
+    }
+}
+
+
+// Parallel softmax kernel for one vector (output of dense layer)
+// Handles any length 'len' (number of classes)
+// Assumes you launch with 'global size = len', 'local size = WGSIZE' (usually 32 or 64)
+// For very large len, handles multiple workgroups
+
+#pragma OPENCL EXTENSION cl_khr_fp64 : enable
+
+// Keep WGSIZE value synced with same definition in host program
+// Change the value in both if your device prefers another workgroup size
+#define WGSIZE 64
+
+__kernel void softmax_parallel(
+    __global const float* input,
+    __global float* output,
+    int len)
+{
+    __local float shared_max[WGSIZE];
+    __local float shared_sum[WGSIZE];
+
+    int lid = get_local_id(0);     // Local ID (0 ... WGSIZE-1)
+    int gid = get_global_id(0);    // Global ID (0 ... len-1)
+    int group_start = get_group_id(0) * WGSIZE;
+
+    // Step 1: Find local maximum
+    float v = (gid < len) ? input[gid] : -FLT_MAX;
+    shared_max[lid] = v;
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    // Parallel reduction to find max in each workgroup
+    for (int offset = WGSIZE/2; offset > 0; offset /= 2) {
+        if (lid < offset && (group_start + lid + offset) < len) {
+            shared_max[lid] = fmax(shared_max[lid], shared_max[lid + offset]);
+        }
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+    float maxval = shared_max[0];
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    // Step 2: Subtract max and exponentiate
+    float expval = (gid < len) ? exp(input[gid] - maxval) : 0.0f;
+    shared_sum[lid] = expval;
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    // Parallel reduction to sum exponentials in each workgroup
+    for (int offset = WGSIZE/2; offset > 0; offset /= 2) {
+        if (lid < offset && (group_start + lid + offset) < len) {
+            shared_sum[lid] += shared_sum[lid + offset];
+        }
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+    float sumval = shared_sum[0];
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    // Step 3: Each thread normalizes its value (for all values in vector)
+    if (gid < len && sumval > 0.0f) {
+        output[gid] = expval / sumval;
     }
 }
