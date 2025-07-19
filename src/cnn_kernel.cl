@@ -67,6 +67,7 @@ __kernel void dense_layer(__global const float* input,
     output[i] = fmax(sum, 0.0f); // ReLU activation
 }
 
+
 __kernel void argmax(
     __global const float* input,
     __global int* output,
@@ -177,4 +178,31 @@ __kernel void softmax_parallel(
     if (gid < len && sumval > 0.0f) {
         output[gid] = expval / sumval;
     }
+}
+
+
+// Dense layer backward kernel
+// Kernel: Each output neuron computes its own grad_input contribution
+__kernel void dense_backward(
+    __global const float* input,           // [input_size]
+    __global float* weights,               // [output_size][input_size]
+    __global float* biases,                // [output_size]
+    __global const float* grad_output,     // [output_size]
+    __global float* grad_input_accum,      // [output_size][input_size]
+    int input_size,
+    int output_size,
+    float learning_rate)
+{
+    int i = get_global_id(0); // output neuron index (class)
+    if (i >= output_size) return;
+
+    for (int j = 0; j < input_size; ++j) {
+        float dL_dweight = grad_output[i] * input[j];
+        int w_idx = i * input_size + j;
+        // SGD update
+        weights[w_idx] -= learning_rate * dL_dweight;
+        // Store this neuron's grad_input contribution
+        grad_input_accum[i * input_size + j] = grad_output[i] * weights[w_idx];
+    }
+    biases[i] -= learning_rate * grad_output[i];
 }
