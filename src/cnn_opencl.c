@@ -33,72 +33,51 @@ char* load_kernel_source(const char* filename) {
     return source;
 }
 
-
 cl_int dense_layer_backprop(
-    cl_context context,
     cl_command_queue queue,
     cl_kernel dense_backward_kernel,
     cl_mem pool_output_buf,
     cl_mem dense_weights_buf,
     cl_mem dense_biases_buf,
     cl_mem grad_output_buf,
-    cl_mem grad_input_buf,
+    cl_mem grad_input_accum_buf,
     float* softmax_output,
     int label,
     int input_size,
     int output_size,
     float learning_rate)
 {
-    // -- Compute grad_output on host
+    // Step 1: Compute grad_output (softmax - onehot)
     float grad_output[output_size];
-    for (int k = 0; k < output_size; ++k) {
+    for (int k = 0; k < output_size; ++k)
         grad_output[k] = softmax_output[k] - (k == label ? 1.0f : 0.0f);
-    }
 
-    // -- Zero grad_input
-    float grad_input[input_size];
-    memset(grad_input, 0, sizeof(float) * input_size);
-    cl_int err = 0;
-    cl_mem grad_input_accum_buf = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float) * DENSE_OUTPUT_SIZE * DENSE_INPUT_SIZE, NULL, &err);
-    if (err != CL_SUCCESS) printf("grad_input_accum_buf creation error: %d\n", err);
-    return err;
-
-    // -- Copy to device
-    clEnqueueWriteBuffer(queue, grad_output_buf, CL_TRUE, 0,
+    // Step 2: Copy grad_output to device
+    cl_int err = clEnqueueWriteBuffer(queue, grad_output_buf, CL_TRUE, 0,
         sizeof(float) * output_size, grad_output, 0, NULL, NULL);
-    clEnqueueWriteBuffer(queue, grad_input_buf, CL_TRUE, 0,
-        sizeof(float) * input_size, grad_input, 0, NULL, NULL);
+    if (err != CL_SUCCESS) { printf("grad_output_buf write error: %d\n", err); return err; }
 
-    // -- Set kernel args
-    clSetKernelArg(dense_backward_kernel, 0, sizeof(cl_mem), &pool_output_buf);
-    clSetKernelArg(dense_backward_kernel, 1, sizeof(cl_mem), &dense_weights_buf);
-    clSetKernelArg(dense_backward_kernel, 2, sizeof(cl_mem), &dense_biases_buf);
-    clSetKernelArg(dense_backward_kernel, 3, sizeof(cl_mem), &grad_output_buf);
-    clSetKernelArg(dense_backward_kernel, 4, sizeof(cl_mem), &grad_input_buf);
-    clSetKernelArg(dense_backward_kernel, 5, sizeof(int), &input_size);
-    clSetKernelArg(dense_backward_kernel, 6, sizeof(int), &output_size);
-    clSetKernelArg(dense_backward_kernel, 7, sizeof(float), &learning_rate);
-
-    // -- Launch
+    // Step 3: Launch backward kernel
     size_t global_size = output_size;
-    clEnqueueNDRangeKernel(queue, dense_backward_kernel, 1, NULL, &global_size, NULL, 0, NULL, NULL);
+    err = clSetKernelArg(dense_backward_kernel, 0, sizeof(cl_mem), &pool_output_buf);
+    err |= clSetKernelArg(dense_backward_kernel, 1, sizeof(cl_mem), &dense_weights_buf);
+    err |= clSetKernelArg(dense_backward_kernel, 2, sizeof(cl_mem), &dense_biases_buf);
+    err |= clSetKernelArg(dense_backward_kernel, 3, sizeof(cl_mem), &grad_output_buf);
+    err |= clSetKernelArg(dense_backward_kernel, 4, sizeof(cl_mem), &grad_input_accum_buf);
+    err |= clSetKernelArg(dense_backward_kernel, 5, sizeof(int), &input_size);
+    err |= clSetKernelArg(dense_backward_kernel, 6, sizeof(int), &output_size);
+    err |= clSetKernelArg(dense_backward_kernel, 7, sizeof(float), &learning_rate);
+    if (err != CL_SUCCESS) { printf("dense_backward_kernel set args error: %d\n", err); return err; }
+
+    err = clEnqueueNDRangeKernel(queue, dense_backward_kernel, 1, NULL, &global_size, NULL, 0, NULL, NULL);
+    if (err != CL_SUCCESS) { printf("dense_backward_kernel launch error: %d\n", err); return err; }
     clFinish(queue);
 
-    float grad_input_accum[DENSE_OUTPUT_SIZE * DENSE_INPUT_SIZE];
-    clEnqueueReadBuffer(queue, grad_input_accum_buf, CL_TRUE, 0,
-        sizeof(grad_input_accum), grad_input_accum, 0, NULL, NULL);
-    for (int j = 0; j < DENSE_INPUT_SIZE; ++j) {
-        for (int i = 0; i < DENSE_OUTPUT_SIZE; ++i) {
-            grad_input[j] += grad_input_accum[i * DENSE_INPUT_SIZE + j];
-        }
-    }
-
-    // Optionally, read back grad_input here if needed for further backprop
-    // clEnqueueReadBuffer(queue, grad_input_buf, CL_TRUE, 0,
-    //    sizeof(float) * input_size, grad_input, 0, NULL, NULL);
+    return CL_SUCCESS;
 }
 
 
+// --- MAIN ---
 int main() {
     float input[INPUT_SIZE * INPUT_SIZE];
     float kernel[KERNEL_SIZE * KERNEL_SIZE];
@@ -123,11 +102,6 @@ int main() {
     for (int i = 0; i < DENSE_OUTPUT_SIZE; ++i)
         dense_biases[i] = (float)i * 0.1f;
 
-    // Paranoia test: force a negative bias and a negative weight
-    // dense_biases[0] = -2.0f;
-    // dense_weights[0 * DENSE_INPUT_SIZE + 0] = -0.5f;
-
-
     printf("First few input values:\n");
     for (int i = 0; i < 8; ++i)
         printf("%.1f ", input[i]);
@@ -140,7 +114,6 @@ int main() {
         printf("%.3f ", dense_biases[i]);
     }
     printf("\n");
-
 
     cl_platform_id platform;
     cl_device_id device;
@@ -172,29 +145,19 @@ int main() {
     size_t pool_output_bytes = POOL_OUTPUT_SIZE * POOL_OUTPUT_SIZE * sizeof(float);
     size_t dense_output_bytes = DENSE_OUTPUT_SIZE * sizeof(float);
 
+    // === Buffer Creation ===
     cl_mem input_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(float) * INPUT_SIZE * INPUT_SIZE, input, &err);
-    if (err != CL_SUCCESS) printf("input_buf creation error: %d\n", err);
-
     cl_mem kernel_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(float) * KERNEL_SIZE * KERNEL_SIZE, kernel, &err);
-    if (err != CL_SUCCESS) printf("kernel_buf creation error: %d\n", err);
-
     cl_mem conv_output_buf = clCreateBuffer(context, CL_MEM_READ_WRITE, conv_output_bytes, NULL, &err);
-    if (err != CL_SUCCESS) printf("conv_output_buf creation error: %d\n", err);
-
     cl_mem pool_output_buf = clCreateBuffer(context, CL_MEM_READ_WRITE, pool_output_bytes, NULL, &err);
-    if (err != CL_SUCCESS) printf("pool_output_buf creation error: %d\n", err);
-
     cl_mem dense_weights_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(float) * DENSE_INPUT_SIZE * DENSE_OUTPUT_SIZE, dense_weights, &err);
-    if (err != CL_SUCCESS) printf("dense_weights_buf creation error: %d\n", err);
-
     cl_mem dense_biases_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(float) * DENSE_OUTPUT_SIZE, dense_biases, &err);
-    if (err != CL_SUCCESS) printf("dense_biases_buf creation error: %d\n", err);
-
     cl_mem dense_output_buf = clCreateBuffer(context, CL_MEM_READ_WRITE, dense_output_bytes, NULL, &err);
-    if (err != CL_SUCCESS) printf("dense_output_buf creation error: %d\n", err);
-
     cl_mem softmax_output_buf = clCreateBuffer(context, CL_MEM_WRITE_ONLY, dense_output_bytes, NULL, &err);
-    if (err != CL_SUCCESS) printf("softmax_output_buf creation error: %d\n", err);
+
+    // New: grad buffers
+    cl_mem grad_output_buf = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float) * DENSE_OUTPUT_SIZE, NULL, &err);
+    cl_mem grad_input_accum_buf = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float) * DENSE_OUTPUT_SIZE * DENSE_INPUT_SIZE, NULL, &err);
 
 
     int input_size_val = INPUT_SIZE;
@@ -212,7 +175,6 @@ int main() {
     clSetKernelArg(conv_kernel, 3, sizeof(int), &input_size_val);           // e.g., 16
     clSetKernelArg(conv_kernel, 4, sizeof(int), &kernel_size_val);          // e.g., 3
     clSetKernelArg(conv_kernel, 5, sizeof(int), &conv_out_val);             // e.g., 14
-
 
     size_t global_size_conv[2] = { conv_out_val, conv_out_val };
     clEnqueueNDRangeKernel(queue, conv_kernel, 2, NULL, global_size_conv, NULL, 0, NULL, NULL);
@@ -236,14 +198,16 @@ int main() {
     float maxpool_output[POOL_OUTPUT_SIZE * POOL_OUTPUT_SIZE];
     clEnqueueReadBuffer(queue, pool_output_buf, CL_TRUE, 0,
         sizeof(maxpool_output), maxpool_output, 0, NULL, NULL);
-    printf("Maxpool output before dense layer:\n");
+
+
+    // === DEBUG PRINTS: Print values of maxpool_output ===
+    printf("Full maxpool output:\n");
     for (int i = 0; i < POOL_OUTPUT_SIZE * POOL_OUTPUT_SIZE; ++i)
         printf("%.3f ", maxpool_output[i]);
     printf("\n");
 
-    cl_kernel dense_kernel = clCreateKernel(program, "dense_layer", &err);
-    if (err != CL_SUCCESS) printf("dense_layer kernel creation error: %d\n", err);
 
+    cl_kernel dense_kernel = clCreateKernel(program, "dense_layer", &err);
     clSetKernelArg(dense_kernel, 0, sizeof(cl_mem), &pool_output_buf);
     clSetKernelArg(dense_kernel, 1, sizeof(cl_mem), &dense_weights_buf);
     clSetKernelArg(dense_kernel, 2, sizeof(cl_mem), &dense_biases_buf);
@@ -253,18 +217,8 @@ int main() {
 
     size_t global_size_dense = DENSE_OUTPUT_SIZE;
     clEnqueueNDRangeKernel(queue, dense_kernel, 1, NULL, &global_size_dense, NULL, 0, NULL, NULL);
-    clEnqueueNDRangeKernel(queue, dense_kernel, 1, NULL, &global_size_dense, NULL, 0, NULL, NULL);
-
-
-    printf("Dense biases after kernel:\n");
-    for (int i = 0; i < DENSE_OUTPUT_SIZE; ++i)
-        printf("%.3f ", dense_biases[i]);
-    printf("\n");
-
 
     cl_kernel softmax_kernel = clCreateKernel(program, "softmax_parallel", &err);
-    if (err != CL_SUCCESS) printf("softmax_kernel creation error: %d\n", err);
-
     clSetKernelArg(softmax_kernel, 0, sizeof(cl_mem), &dense_output_buf);
     clSetKernelArg(softmax_kernel, 1, sizeof(cl_mem), &softmax_output_buf);
     clSetKernelArg(softmax_kernel, 2, sizeof(int), &dense_out_val);
@@ -277,11 +231,9 @@ int main() {
         printf("%.3f ", dense_output[i]);
     printf("\n");
 
-    // clEnqueueNDRangeKernel(queue, softmax_kernel, 1, NULL, &global_size_dense, NULL, 0, NULL, NULL);
     size_t local_size = WGSIZE;
     size_t global_size = ((dense_out_val + WGSIZE - 1) / WGSIZE) * WGSIZE;
     clEnqueueNDRangeKernel(queue, softmax_kernel, 1, NULL, &global_size, &local_size, 0, NULL, NULL);
-
 
     float softmax_output[DENSE_OUTPUT_SIZE];
     clEnqueueReadBuffer(queue, softmax_output_buf, CL_TRUE, 0,
@@ -296,56 +248,70 @@ int main() {
     for (int i = 0; i < DENSE_OUTPUT_SIZE; ++i) sum += softmax_output[i];
     printf("Softmax sum: %.6f\n", sum);  // Should be almost exactly 1.0
 
-    // -- After printing softmax outputs and softmax sum --
+    // --- DEBUG: Print dense weights BEFORE update
+    float dense_weights_before[DENSE_OUTPUT_SIZE * DENSE_INPUT_SIZE];
+    clEnqueueReadBuffer(queue, dense_weights_buf, CL_TRUE, 0,
+        sizeof(dense_weights_before), dense_weights_before, 0, NULL, NULL);
+    printf("First 10 dense weights BEFORE update:\n");
+    for (int i = 0; i < 10; ++i) printf("%f ", dense_weights_before[i]);
+    printf("\n");
 
-    // 1. Create buffers for gradients if you haven't yet (can be reused)
-    cl_mem grad_output_buf = clCreateBuffer(context, CL_MEM_READ_WRITE,
-        sizeof(float) * DENSE_OUTPUT_SIZE, NULL, &err);
-    if (err != CL_SUCCESS) printf("grad_output_buf creation error: %d\n", err);
+    // --- Print grad_output (host) ---
+    float grad_output[DENSE_OUTPUT_SIZE];
+    // (simulate what dense_layer_backprop does)
+    int label = 2;
+    for (int k = 0; k < DENSE_OUTPUT_SIZE; ++k)
+        grad_output[k] = softmax_output[k] - (k == label ? 1.0f : 0.0f);
+    printf("First 10 grad_output values (host):\n");
+    for (int i = 0; i < 10; ++i) printf("%f ", grad_output[i]);
+    printf("\n");
 
-    cl_mem grad_input_buf = clCreateBuffer(context, CL_MEM_READ_WRITE,
-        sizeof(float) * DENSE_INPUT_SIZE, NULL, &err);
-    if (err != CL_SUCCESS) printf("grad_input_buf creation error: %d\n", err);
-
-    // 2. Choose a label and learning rate
-    int label = 2; // Use 0-9 for your test data
-    float learning_rate = 0.01f;
-
-    // 3. Create the dense backward kernel
+    // --- Launch backprop ---
     cl_kernel dense_backward_kernel = clCreateKernel(program, "dense_backward", &err);
-    if (err != CL_SUCCESS) printf("dense_backward_kernel creation failed: %d\n", err);
+    float learning_rate = 1.0f; // exaggerate for demo
 
-    // 4. Call your backprop function
-    err = dense_layer_backprop(
-        context,
+    cl_int bp_err = dense_layer_backprop(
         queue,
         dense_backward_kernel,
-        pool_output_buf,         // input to dense layer (OpenCL buffer)
-        dense_weights_buf,       // weights (OpenCL buffer)
-        dense_biases_buf,        // biases (OpenCL buffer)
-        grad_output_buf,         // grad_output (OpenCL buffer)
-        grad_input_buf,          // grad_input (OpenCL buffer)
-        softmax_output,          // host pointer (result from softmax)
+        pool_output_buf,
+        dense_weights_buf,
+        dense_biases_buf,
+        grad_output_buf,
+        grad_input_accum_buf,
+        softmax_output,
         label,
         DENSE_INPUT_SIZE,
         DENSE_OUTPUT_SIZE,
         learning_rate
     );
-    if (err != CL_SUCCESS) printf("dense_layer_backprop failed: %d\n", err);
+    if (bp_err != CL_SUCCESS) printf("dense_layer_backprop failed: %d\n", bp_err);
 
-    // (Optional) Read back weights, biases, or grad_input to print/inspect after update!
-    // Example: read weights back to host and print
-
-    float updated_dense_weights[DENSE_OUTPUT_SIZE * DENSE_INPUT_SIZE];
+    // --- Print weights AFTER update ---
+    float dense_weights_after[DENSE_OUTPUT_SIZE * DENSE_INPUT_SIZE];
     clEnqueueReadBuffer(queue, dense_weights_buf, CL_TRUE, 0,
-        sizeof(updated_dense_weights), updated_dense_weights, 0, NULL, NULL);
-    printf("First updated weights: %.3f %.3f\n", updated_dense_weights[0], updated_dense_weights[1]);
+        sizeof(dense_weights_after), dense_weights_after, 0, NULL, NULL);
+
+
+    // Example: print weights for the first few inputs of the first output neuron
+   // Print 40 weights before and after, see if there are any changes
+    printf("First 40 weights BEFORE update:\n");
+    for (int i = 0; i < 40; ++i)
+        printf("%f ", dense_weights_before[i]);
+    printf("\n");
+    printf("First 40 weights AFTER update:\n");
+    for (int i = 0; i < 40; ++i)
+        printf("%f ", dense_weights_after[i]);
+    printf("\n");
+
+
+    printf("Input to dense layer (pool_output):\n");
+    for (int i = 0; i < 10; ++i) printf("%f ", maxpool_output[i]);
+    printf("\n");
 
 
     clReleaseMemObject(grad_output_buf);
-    clReleaseMemObject(grad_input_buf);
+    clReleaseMemObject(grad_input_accum_buf);
     clReleaseKernel(dense_backward_kernel);
-
 
     clReleaseMemObject(input_buf);
     clReleaseMemObject(kernel_buf);
