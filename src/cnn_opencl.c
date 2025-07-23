@@ -6,7 +6,7 @@
 #include <math.h>
 #include <string.h>
 
-#define INPUT_SIZE 16
+#define INPUT_SIZE 32
 #define KERNEL_SIZE 3
 #define CONV_OUTPUT_SIZE (INPUT_SIZE - KERNEL_SIZE + 1)
 #define POOL_SIZE 2
@@ -16,6 +16,28 @@
 
 // For parallelized softmax
 #define WGSIZE 64
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+int load_greyscale_image(const char* path, float* buffer, int expected_w, int expected_h) {
+    int w, h, c;
+    unsigned char* img = stbi_load(path, &w, &h, &c, 1); // force greyscale
+    if (!img) {
+        fprintf(stderr, "Failed to load image: %s\n", path);
+        return 1;
+    }
+    if (w != expected_w || h != expected_h) {
+        fprintf(stderr, "Unexpected size for %s: got %dx%d, expected %dx%d\n", path, w, h, expected_w, expected_h);
+        stbi_image_free(img);
+        return 1;
+    }
+    for (int i = 0; i < w * h; ++i)
+        buffer[i] = img[i] / 255.0f;
+    stbi_image_free(img);
+    return 0; // success
+}
+
 
 char* load_kernel_source(const char* filename) {
     FILE* fp = fopen(filename, "r");
@@ -77,38 +99,40 @@ cl_int dense_layer_backprop(
 }
 
 
-// --- MAIN ---
 int main() {
     float input[INPUT_SIZE * INPUT_SIZE];
     float kernel[KERNEL_SIZE * KERNEL_SIZE];
     float dense_weights[DENSE_OUTPUT_SIZE * DENSE_INPUT_SIZE];
     float dense_biases[DENSE_OUTPUT_SIZE];
 
-    for (int row = 0; row < INPUT_SIZE; ++row) {
-        for (int col = 0; col < INPUT_SIZE; ++col) {
-            int i = row * INPUT_SIZE + col;
-            if (row >= 8 && row < 24 && col >= 8 && col < 24)
-                input[i] = 1.0f;
-            else
-                input[i] = 0.0f;
-        }
+    // Example image path - update as needed!
+    const char* image_path = "/Users/acz/defcon33-prep/afhq32/train/dog/flickr_dog_000028.png";
+    if (load_greyscale_image(image_path, input, INPUT_SIZE, INPUT_SIZE)) {
+        fprintf(stderr, "Image loading failed, aborting.\n");
+        return 1;
     }
+
+    printf("First 8 input pixels:\n");
+    for (int i = 0; i < 8; ++i)
+        printf("%.3f ", input[i]);
+    printf("\n");
+
+    return 0;
 
     for (int i = 0; i < KERNEL_SIZE * KERNEL_SIZE; ++i)
         kernel[i] = 1.0f / 9.0f;
+
+    printf("\nKernel values:\n");
+    for (int i = 0; i < 9; ++i)
+        printf("%.3f ", kernel[i]);
+    printf("\n");
+
 
     for (int i = 0; i < DENSE_OUTPUT_SIZE * DENSE_INPUT_SIZE; ++i)
         dense_weights[i] = 0.1f;
     for (int i = 0; i < DENSE_OUTPUT_SIZE; ++i)
         dense_biases[i] = (float)i * 0.1f;
 
-    printf("First few input values:\n");
-    for (int i = 0; i < 8; ++i)
-        printf("%.1f ", input[i]);
-    printf("\nKernel values:\n");
-    for (int i = 0; i < 9; ++i)
-        printf("%.3f ", kernel[i]);
-    printf("\n");
     printf("First few bias values:\n");
     for (int i = 0; i < DENSE_OUTPUT_SIZE; ++i) {
         printf("%.3f ", dense_biases[i]);
