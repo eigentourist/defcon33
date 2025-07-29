@@ -349,39 +349,109 @@ build cnn_cpu: C_EXECUTABLE_LINKER__cnn_cpu_Debug CMakeFiles/cnn_cpu.dir/src/cnn
   TARGET_PDB = cnn_cpu.dbg
 
 # =============================================================================
-# Object build statements for EXECUTABLE target cnn_opencl
+# Object build statements for EXECUTABLE target cnn_opencl_a
 
 
 #############################################
-# Order-only phony target for cnn_opencl
+# Order-only phony target for cnn_opencl_a
 
-build cmake_object_order_depends_target_cnn_opencl: phony || .
+build cmake_object_order_depends_target_cnn_opencl_a: phony || .
 
-build CMakeFiles/cnn_opencl.dir/src/cnn_opencl.c.o: C_COMPILER__cnn_opencl_unscanned_Debug /Users/acz/defcon33/src/cnn_opencl.c || cmake_object_order_depends_target_cnn_opencl
+build CMakeFiles/cnn_opencl_a.dir/src/cnn_opencl_a.c.o: C_COMPILER__cnn_opencl_a_unscanned_Debug /Users/acz/defcon33/src/cnn_opencl_a.c || cmake_object_order_depends_target_cnn_opencl_a
   CONFIG = Debug
-  DEP_FILE = CMakeFiles/cnn_opencl.dir/src/cnn_opencl.c.o.d
+  DEP_FILE = CMakeFiles/cnn_opencl_a.dir/src/cnn_opencl_a.c.o.d
   FLAGS = -g -std=gnu99
   INCLUDES = -I/usr/local/opt/opencl-headers/include
-  OBJECT_DIR = CMakeFiles/cnn_opencl.dir
-  OBJECT_FILE_DIR = CMakeFiles/cnn_opencl.dir/src
+  OBJECT_DIR = CMakeFiles/cnn_opencl_a.dir
+  OBJECT_FILE_DIR = CMakeFiles/cnn_opencl_a.dir/src
 
 
 # =============================================================================
-# Link build statements for EXECUTABLE target cnn_opencl
+# Link build statements for EXECUTABLE target cnn_opencl_a
 
 
 #############################################
-# Link the executable cnn_opencl
+# Link the executable cnn_opencl_a
 
-build cnn_opencl: C_EXECUTABLE_LINKER__cnn_opencl_Debug CMakeFiles/cnn_opencl.dir/src/cnn_opencl.c.o
+build cnn_opencl_a: C_EXECUTABLE_LINKER__cnn_opencl_a_Debug CMakeFiles/cnn_opencl_a.dir/src/cnn_opencl_a.c.o
   CONFIG = Debug
   FLAGS = -g
   LINK_FLAGS = -framework OpenCL
-  OBJECT_DIR = CMakeFiles/cnn_opencl.dir
+  OBJECT_DIR = CMakeFiles/cnn_opencl_a.dir
   POST_BUILD = :
   PRE_LINK = :
-  TARGET_FILE = cnn_opencl
-  TARGET_PDB = cnn_opencl.dbg
+  TARGET_FILE = cnn_opencl_a
+  TARGET_PDB = cnn_opencl_a.dbg
+
+# =============================================================================
+# Object build statements for EXECUTABLE target cnn_opencl_b
+
+
+#############################################
+# Order-only phony target for cnn_opencl_b
+
+build cmake_object_order_depends_target_cnn_opencl_b: phony || .
+
+build CMakeFiles/cnn_opencl_b.dir/src/cnn_opencl_b.c.o: C_COMPILER__cnn_opencl_b_unscanned_Debug /Users/acz/defcon33/src/cnn_opencl_b.c || cmake_object_order_depends_target_cnn_opencl_b
+  CONFIG = Debug
+  DEP_FILE = CMakeFiles/cnn_opencl_b.dir/src/cnn_opencl_b.c.o.d
+  FLAGS = -g -std=gnu99
+  INCLUDES = -I/usr/local/opt/opencl-headers/include
+  OBJECT_DIR = CMakeFiles/cnn_opencl_b.dir
+  OBJECT_FILE_DIR = CMakeFiles/cnn_opencl_b.dir/src
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target cnn_opencl_b
+
+
+#############################################
+# Link the executable cnn_opencl_b
+
+build cnn_opencl_b: C_EXECUTABLE_LINKER__cnn_opencl_b_Debug CMakeFiles/cnn_opencl_b.dir/src/cnn_opencl_b.c.o
+  CONFIG = Debug
+  FLAGS = -g
+  LINK_FLAGS = -framework OpenCL
+  OBJECT_DIR = CMakeFiles/cnn_opencl_b.dir
+  POST_BUILD = :
+  PRE_LINK = :
+  TARGET_FILE = cnn_opencl_b
+  TARGET_PDB = cnn_opencl_b.dbg
+
+# =============================================================================
+# Object build statements for EXECUTABLE target cnn_opencl_c
+
+
+#############################################
+# Order-only phony target for cnn_opencl_c
+
+build cmake_object_order_depends_target_cnn_opencl_c: phony || .
+
+build CMakeFiles/cnn_opencl_c.dir/src/cnn_opencl_c.c.o: C_COMPILER__cnn_opencl_c_unscanned_Debug /Users/acz/defcon33/src/cnn_opencl_c.c || cmake_object_order_depends_target_cnn_opencl_c
+  CONFIG = Debug
+  DEP_FILE = CMakeFiles/cnn_opencl_c.dir/src/cnn_opencl_c.c.o.d
+  FLAGS = -g -std=gnu99
+  INCLUDES = -I/usr/local/opt/opencl-headers/include
+  OBJECT_DIR = CMakeFiles/cnn_opencl_c.dir
+  OBJECT_FILE_DIR = CMakeFiles/cnn_opencl_c.dir/src
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target cnn_opencl_c
+
+
+#############################################
+# Link the executable cnn_opencl_c
+
+build cnn_opencl_c: C_EXECUTABLE_LINKER__cnn_opencl_c_Debug CMakeFiles/cnn_opencl_c.dir/src/cnn_opencl_c.c.o
+  CONFIG = Debug
+  FLAGS = -g
+  LINK_FLAGS = -framework OpenCL
+  OBJECT_DIR = CMakeFiles/cnn_opencl_c.dir
+  POST_BUILD = :
+  PRE_LINK = :
+  TARGET_FILE = cnn_opencl_c
+  TARGET_PDB = cnn_opencl_c.dbg
 
 
 #############################################
@@ -418,7 +488,7 @@ build rebuild_cache: phony CMakeFiles/rebuild_cache.util
 #############################################
 # Folder: /Users/acz/defcon33/build
 
-build all: phony matrix_mult_cpu matrix_mult_opencl game_of_life list_platforms perceptron_cpu perceptron_opencl ml_perceptron_cpu ml_perceptron_opencl cnn_cpu cnn_opencl
+build all: phony matrix_mult_cpu matrix_mult_opencl game_of_life list_platforms perceptron_cpu perceptron_opencl ml_perceptron_cpu ml_perceptron_opencl cnn_cpu cnn_opencl_a cnn_opencl_b cnn_opencl_c
 
 # =============================================================================
 # Built-in targets

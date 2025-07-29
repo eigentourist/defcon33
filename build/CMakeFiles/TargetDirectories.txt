@@ -7,6 +7,8 @@
 /Users/acz/defcon33/build/CMakeFiles/ml_perceptron_cpu.dir
 /Users/acz/defcon33/build/CMakeFiles/ml_perceptron_opencl.dir
 /Users/acz/defcon33/build/CMakeFiles/cnn_cpu.dir
-/Users/acz/defcon33/build/CMakeFiles/cnn_opencl.dir
+/Users/acz/defcon33/build/CMakeFiles/cnn_opencl_a.dir
+/Users/acz/defcon33/build/CMakeFiles/cnn_opencl_b.dir
+/Users/acz/defcon33/build/CMakeFiles/cnn_opencl_c.dir
 /Users/acz/defcon33/build/CMakeFiles/edit_cache.dir
 /Users/acz/defcon33/build/CMakeFiles/rebuild_cache.dir
