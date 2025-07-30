@@ -52,11 +52,13 @@ __kernel void dense_layer(__global const float* input,
                           const int input_size,
                           const int output_size) {
     int i = get_global_id(0);
+    /*
     if (i == 0) {
         for (int k = 0; k < output_size; ++k) {
             printf("bias[%d] = %f\n", k, biases[k]);
         }
     }
+    */
     if (i >= output_size) return;
 
     float sum = biases[i];

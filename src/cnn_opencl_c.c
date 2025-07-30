@@ -56,6 +56,7 @@ char* load_kernel_source(const char* filename) {
     return source;
 }
 
+
 cl_int dense_layer_backprop(
     cl_command_queue queue,
     cl_kernel dense_backward_kernel,
@@ -100,16 +101,16 @@ cl_int dense_layer_backprop(
 }
 
 
-#define MAX_PATH 256
-#define MAX_BATCH 1000
+#define MAX_PATH_LEN 256
+#define MAX_SET_SIZE 1000
 
 typedef struct {
-    char path[MAX_PATH];
+    char path[MAX_PATH_LEN];
     int label;
-} ImageExample;
+} ImageData;
 
 
-int load_csv(const char* csv_path, ImageExample* examples, int max_examples) {
+int load_csv(const char* csv_path, ImageData* examples, int max_examples) {
     FILE* f = fopen(csv_path, "r");
     if (!f) {
         perror("CSV open failed");
@@ -121,8 +122,8 @@ int load_csv(const char* csv_path, ImageExample* examples, int max_examples) {
         char* comma = strchr(line, ',');
         if (!comma) continue;
         *comma = '\0';
-        strncpy(examples[n].path, line, MAX_PATH-1);
-        examples[n].path[MAX_PATH-1] = '\0';
+        strncpy(examples[n].path, line, MAX_PATH_LEN-1);
+        examples[n].path[MAX_PATH_LEN-1] = '\0';
         examples[n].label = atoi(comma + 1);
         // printf("Loaded %s with label %d.\n", examples[n].path, examples[n].label);
         n++;
@@ -132,18 +133,17 @@ int load_csv(const char* csv_path, ImageExample* examples, int max_examples) {
 }
 
 
-// Shuffle an array of ImageExample structs in-place
-void shuffle_array(ImageExample* examples, int n) {
-    // Seed the RNG—should be done once, e.g. in main()
-    srand((unsigned int)time(NULL));
+// Shuffle an array of ImageData structs in-place
+void shuffle_array(ImageData* examples, int n) {
     for (int i = n - 1; i > 0; --i) {
         int j = rand() % (i + 1); // Pick random index from 0..i
         // Swap examples[i] and examples[j]
-        ImageExample temp = examples[i];
+        ImageData temp = examples[i];
         examples[i] = examples[j];
         examples[j] = temp;
     }
 }
+
 
 // Return the index of the largest value in the softmax output,
 // which corresponds to the predicted class.
@@ -160,25 +160,69 @@ int argmax(const float* arr, int n) {
 }
 
 
+// Compute categorical cross-entropy loss for a batch
+// probs: [batch_size][num_classes] — softmax outputs
+// labels: [batch_size] — true class indices
+// batch_size: number of samples
+// num_classes: number of output classes
+float cross_entropy_loss(const float* probs, const int* labels, int batch_size, int num_classes) {
+    float total_loss = 0.0f;
+    for (int i = 0; i < batch_size; ++i) {
+        int true_label = labels[i];
+        float p = probs[i * num_classes + true_label];
+        // Clamp p to avoid log(0) (which is -inf)
+        p = fmaxf(p, 1e-8f);
+        total_loss += -logf(p);
+    }
+    return total_loss / batch_size;
+}
+
+
+#define BATCH_SIZE 16
+#define INPUT_PIXELS (INPUT_SIZE * INPUT_SIZE)
+
+void load_minibatch(
+    ImageData *all_examples, // the array from CSV
+    int start_index,            // index to start from
+    int batch_size,             // how many images to load (may be < BATCH_SIZE for last batch)
+    float input2d[BATCH_SIZE][INPUT_PIXELS],
+    int labels[BATCH_SIZE]
+) {
+    for (int i = 0; i < batch_size; ++i) {
+        const char *path = all_examples[start_index + i].path;
+        labels[i] = all_examples[start_index + i].label;
+        if (load_greyscale_image(path, input2d[i], INPUT_SIZE, INPUT_SIZE)) {
+            fprintf(stderr, "Warning: Failed to load image %s, zeroing out.\n", path);
+            memset(input2d[i], 0, sizeof(float) * INPUT_PIXELS); // fill with zeros on error
+            labels[i] = -1; // mark as invalid
+        }
+    }
+}
+
+
 
 #define DATA_PATH "./data/"
 #define TRAIN_CSV_FILENAME "afhq32_train.csv"
 #define VAL_CSV_FILENAME "afh32_val.csv"
 
 int main() {
+    // Seed PRNG with current time (once per program)
+    srand((unsigned int)time(NULL));
+
     // --- 1. Load CSV batch ---
-    ImageExample batch[MAX_BATCH];
+    ImageData imageData[MAX_SET_SIZE];
 
-    char train_path[MAX_PATH];
-    strncat(train_path, DATA_PATH, sizeof(DATA_PATH));
-    strncat(train_path, TRAIN_CSV_FILENAME, sizeof(TRAIN_CSV_FILENAME));
+    char train_path[MAX_PATH_LEN];
+    snprintf(train_path, sizeof(train_path), "%s%s", DATA_PATH, TRAIN_CSV_FILENAME);
 
-    printf("Loading examples from %s.\n", train_path);
-    int num_examples = load_csv(train_path, batch, MAX_BATCH);
-    printf("Loaded %d examples from %s.\n", num_examples, train_path);
+    printf("Loading training set from %s.\n", train_path);
+    int training_set_size = load_csv(train_path, imageData, MAX_SET_SIZE);
+    printf("Loaded %d training items from %s.\n", training_set_size, train_path);
 
     // --- 2. Init model weights ---
-    float input[INPUT_SIZE * INPUT_SIZE];
+    // float input[INPUT_SIZE * INPUT_SIZE];
+    float input2d[BATCH_SIZE][INPUT_SIZE * INPUT_SIZE];
+    int labels[BATCH_SIZE];
     float kernel[KERNEL_SIZE * KERNEL_SIZE];
     float dense_weights[DENSE_OUTPUT_SIZE * DENSE_INPUT_SIZE];
     float dense_biases[DENSE_OUTPUT_SIZE];
@@ -221,7 +265,7 @@ int main() {
     size_t pool_output_bytes = POOL_OUTPUT_SIZE * POOL_OUTPUT_SIZE * sizeof(float);
     size_t dense_output_bytes = DENSE_OUTPUT_SIZE * sizeof(float);
 
-    cl_mem input_buf = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float) * INPUT_SIZE * INPUT_SIZE, NULL, &err);
+    cl_mem input_buf = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float) * BATCH_SIZE * INPUT_PIXELS, NULL, &err);
     cl_mem kernel_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(float) * KERNEL_SIZE * KERNEL_SIZE, kernel, &err);
     cl_mem conv_output_buf = clCreateBuffer(context, CL_MEM_READ_WRITE, conv_output_bytes, NULL, &err);
     cl_mem pool_output_buf = clCreateBuffer(context, CL_MEM_READ_WRITE, pool_output_bytes, NULL, &err);
@@ -263,74 +307,73 @@ int main() {
     int num_epochs = 10;
     for (int epoch = 0; epoch < num_epochs; ++epoch) {
         printf("==== Epoch %d ====\n", epoch+1);
-        shuffle_array(batch, num_examples); // Reshuffle data at start of each epoch
-        int correct = 0; // Count of correct results after each epoch
+        shuffle_array(imageData, training_set_size); // Reshuffle data at start of each epoch
+        int correct = 0; // total correct predictions for epoch
+        float total_loss = 0.0f; // total loss for epoch
 
+        for (int batch_start = 0; batch_start < training_set_size; batch_start += BATCH_SIZE) {
+            int this_batch_size = (batch_start + BATCH_SIZE > training_set_size)
+                    ? training_set_size - batch_start
+                    : BATCH_SIZE;
 
-        // --- 6. TRAINING LOOP ---
-        for (int i = 0; i < num_examples; ++i) {
-            printf("\nProcessing image %d: %s (label=%d)\n", i, batch[i].path, batch[i].label);
+            // Load the minibatch into arrays (input2d, labels)
+            load_minibatch(imageData, batch_start, this_batch_size, input2d, labels);
 
-            // (a) Load image
-            if (load_greyscale_image(batch[i].path, input, INPUT_SIZE, INPUT_SIZE)) {
-                fprintf(stderr, "Failed to load %s\n", batch[i].path);
-                continue;
+            for (int i = 0; i < this_batch_size; ++i) {
+                // (a) Write a SINGLE image to device
+                clEnqueueWriteBuffer(queue, input_buf, CL_TRUE, 0,
+                    sizeof(float) * INPUT_PIXELS, input2d[i], 0, NULL, NULL);
+
+                // (b) Forward pass
+                clSetKernelArg(conv_kernel, 0, sizeof(cl_mem), &input_buf);
+                clSetKernelArg(conv_kernel, 2, sizeof(cl_mem), &conv_output_buf);
+                size_t global_size_conv[2] = { conv_out_val, conv_out_val };
+                clEnqueueNDRangeKernel(queue, conv_kernel, 2, NULL, global_size_conv, NULL, 0, NULL, NULL);
+
+                clSetKernelArg(pool_kernel, 0, sizeof(cl_mem), &conv_output_buf);
+                clSetKernelArg(pool_kernel, 1, sizeof(cl_mem), &pool_output_buf);
+                size_t global_size_pool[2] = { pool_out_val, pool_out_val };
+                clEnqueueNDRangeKernel(queue, pool_kernel, 2, NULL, global_size_pool, NULL, 0, NULL, NULL);
+
+                clSetKernelArg(dense_kernel, 0, sizeof(cl_mem), &pool_output_buf);
+                clSetKernelArg(dense_kernel, 3, sizeof(cl_mem), &dense_output_buf);
+                size_t global_size_dense = dense_out_val;
+                clEnqueueNDRangeKernel(queue, dense_kernel, 1, NULL, &global_size_dense, NULL, 0, NULL, NULL);
+
+                clSetKernelArg(softmax_kernel, 0, sizeof(cl_mem), &dense_output_buf);
+                clSetKernelArg(softmax_kernel, 1, sizeof(cl_mem), &softmax_output_buf);
+                size_t local_size = WGSIZE;
+                size_t global_size = ((dense_out_val + WGSIZE - 1) / WGSIZE) * WGSIZE;
+                clEnqueueNDRangeKernel(queue, softmax_kernel, 1, NULL, &global_size, &local_size, 0, NULL, NULL);
+
+                // (c) Read output
+                float softmax_output[DENSE_OUTPUT_SIZE];
+                clEnqueueReadBuffer(queue, softmax_output_buf, CL_TRUE, 0,
+                    sizeof(softmax_output), softmax_output, 0, NULL, NULL);
+
+                // (d) Prediction and Loss
+                int pred = argmax(softmax_output, DENSE_OUTPUT_SIZE);
+                float loss = -logf(fmaxf(softmax_output[labels[i]], 1e-8f));
+                total_loss += loss;
+                if (pred == labels[i]) correct++;
+
+                // (e) Backpropagation for this sample
+                float learning_rate = 0.1f;
+                cl_int bp_err = dense_layer_backprop(
+                    queue, dense_backward_kernel,
+                    pool_output_buf, dense_weights_buf, dense_biases_buf,
+                    grad_output_buf, grad_input_accum_buf,
+                    softmax_output, labels[i],
+                    DENSE_INPUT_SIZE, DENSE_OUTPUT_SIZE,
+                    learning_rate
+                );
+                if (bp_err != CL_SUCCESS) printf("Backprop error: %d\n", bp_err);
             }
-
-            // (b) Copy image to device
-            clEnqueueWriteBuffer(queue, input_buf, CL_TRUE, 0, sizeof(float)*INPUT_SIZE*INPUT_SIZE, input, 0, NULL, NULL);
-
-            // (c) Forward pass
-            clSetKernelArg(conv_kernel, 0, sizeof(cl_mem), &input_buf);
-            clSetKernelArg(conv_kernel, 2, sizeof(cl_mem), &conv_output_buf);
-            size_t global_size_conv[2] = { conv_out_val, conv_out_val };
-            clEnqueueNDRangeKernel(queue, conv_kernel, 2, NULL, global_size_conv, NULL, 0, NULL, NULL);
-
-            clSetKernelArg(pool_kernel, 0, sizeof(cl_mem), &conv_output_buf);
-            clSetKernelArg(pool_kernel, 1, sizeof(cl_mem), &pool_output_buf);
-            size_t global_size_pool[2] = { pool_out_val, pool_out_val };
-            clEnqueueNDRangeKernel(queue, pool_kernel, 2, NULL, global_size_pool, NULL, 0, NULL, NULL);
-
-            clSetKernelArg(dense_kernel, 0, sizeof(cl_mem), &pool_output_buf);
-            clSetKernelArg(dense_kernel, 3, sizeof(cl_mem), &dense_output_buf);
-            size_t global_size_dense = dense_out_val;
-            clEnqueueNDRangeKernel(queue, dense_kernel, 1, NULL, &global_size_dense, NULL, 0, NULL, NULL);
-
-            clSetKernelArg(softmax_kernel, 0, sizeof(cl_mem), &dense_output_buf);
-            clSetKernelArg(softmax_kernel, 1, sizeof(cl_mem), &softmax_output_buf);
-            size_t local_size = WGSIZE;
-            size_t global_size = ((dense_out_val + WGSIZE - 1) / WGSIZE) * WGSIZE;
-            clEnqueueNDRangeKernel(queue, softmax_kernel, 1, NULL, &global_size, &local_size, 0, NULL, NULL);
-
-            // (d) Read output
-            float softmax_output[DENSE_OUTPUT_SIZE];
-            clEnqueueReadBuffer(queue, softmax_output_buf, CL_TRUE, 0,
-                sizeof(softmax_output), softmax_output, 0, NULL, NULL);
-
-            printf("Softmax output: ");
-            for (int k = 0; k < DENSE_OUTPUT_SIZE; ++k)
-                printf("%.3f ", softmax_output[k]);
-            printf(" | True: %d\n", batch[i].label);
-
-            // (e) Backward pass
-            float learning_rate = 0.1f;
-            cl_int bp_err = dense_layer_backprop(
-                queue, dense_backward_kernel,
-                pool_output_buf, dense_weights_buf, dense_biases_buf,
-                grad_output_buf, grad_input_accum_buf,
-                softmax_output, batch[i].label,
-                DENSE_INPUT_SIZE, DENSE_OUTPUT_SIZE,
-                learning_rate
-            );
-            if (bp_err != CL_SUCCESS) printf("Backprop error: %d\n", bp_err);
-
-            // (Optional: print/update weights, accuracy stats, etc)
-            int pred = argmax(softmax_output, DENSE_OUTPUT_SIZE);
-            if (pred == batch[i].label) correct++;
         }
-
-        float acc = 100.0f * correct / num_examples;
-        printf("Epoch %d: Accuracy = %.2f%%\n", epoch+1, acc);
+        // End of epoch: print stats
+        float avg_loss = total_loss / training_set_size;
+        float acc = 100.0f * correct / training_set_size;
+        printf("Epoch %d Summary: Accuracy = %.2f%%, Avg Loss = %.4f\n\n", epoch+1, acc, avg_loss);
     }
 
 

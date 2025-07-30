@@ -104,7 +104,7 @@ cl_int dense_layer_backprop(
 #define MAX_BATCH 1000
 
 typedef struct {
-    char path[MAX_PATH];
+    char path[MAX_PATH_LEN];
     int label;
 } ImageExample;
 
@@ -121,8 +121,8 @@ int load_csv(const char* csv_path, ImageExample* examples, int max_examples) {
         char* comma = strchr(line, ',');
         if (!comma) continue;
         *comma = '\0';
-        strncpy(examples[n].path, line, MAX_PATH-1);
-        examples[n].path[MAX_PATH-1] = '\0';
+        strncpy(examples[n].path, line, MAX_PATH_LEN-1);
+        examples[n].path[MAX_PATH_LEN-1] = '\0';
         examples[n].label = atoi(comma + 1);
         // printf("Loaded %s with label %d.\n", examples[n].path, examples[n].label);
         n++;
@@ -152,14 +152,14 @@ void shuffle_examples(ImageExample* examples, int n) {
 
 int main() {
     // --- 1. Load CSV batch ---
-    ImageExample batch[MAX_BATCH];
+    ImageExample batch[MAX_SET_SIZE];
 
-    char train_path[MAX_PATH];
+    char train_path[MAX_PATH_LEN];
     strncat(train_path, DATA_PATH, sizeof(DATA_PATH));
     strncat(train_path, TRAIN_CSV_FILENAME, sizeof(TRAIN_CSV_FILENAME));
 
     printf("Loading examples from %s.\n", train_path);
-    int num = load_csv(train_path, batch, MAX_BATCH);
+    int num = load_csv(train_path, batch, MAX_SET_SIZE);
     printf("Loaded %d examples from %s.\n", num, train_path);
     shuffle_examples(batch, num); // Shuffle dataset in-place!
 
