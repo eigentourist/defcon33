@@ -26,6 +26,7 @@ add_executable(cnn_cpu src/cnn_cpu.c)
 add_executable(cnn_opencl_a src/cnn_opencl_a.c)
 add_executable(cnn_opencl_b src/cnn_opencl_b.c)
 add_executable(cnn_opencl_c src/cnn_opencl_c.c)
+add_executable(cnn_opencl_d src/cnn_opencl_d.c)
 
 
 # --- Platform-specific OpenCL setup ---
@@ -41,6 +42,7 @@ if(APPLE)
     target_include_directories(cnn_opencl_a PRIVATE /usr/local/opt/opencl-headers/include)
     target_include_directories(cnn_opencl_b PRIVATE /usr/local/opt/opencl-headers/include)
     target_include_directories(cnn_opencl_c PRIVATE /usr/local/opt/opencl-headers/include)
+    target_include_directories(cnn_opencl_d PRIVATE /usr/local/opt/opencl-headers/include)
 
     # Apple Silicon (if needed):
     # target_include_directories(matrix_mult_opencl PRIVATE /opt/homebrew/opt/opencl-headers/include)
@@ -59,6 +61,7 @@ if(APPLE)
     target_link_options(cnn_opencl_a PRIVATE "-framework" "OpenCL")
     target_link_options(cnn_opencl_b PRIVATE "-framework" "OpenCL")
     target_link_options(cnn_opencl_c PRIVATE "-framework" "OpenCL")
+    target_link_options(cnn_opencl_d PRIVATE "-framework" "OpenCL")
 else()
     # Linux or Windows
     find_package(OpenCL REQUIRED)
@@ -70,6 +73,7 @@ else()
     target_link_libraries(cnn_opencl_a OpenCL::OpenCL)
     target_link_libraries(cnn_opencl_b OpenCL::OpenCL)
     target_link_libraries(cnn_opencl_c OpenCL::OpenCL)
+    target_link_libraries(cnn_opencl_d OpenCL::OpenCL)
 endif()
 
 # --- ncurses (only needed by game_of_life) ---

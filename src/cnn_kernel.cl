@@ -2,46 +2,140 @@
 __kernel void conv2d(
     __global const float* input,
     __global const float* weights,
+    __global const float* biases,
     __global float* output,
     int input_size,
     int kernel_size,
-    int conv_output_size) {
-
+    int conv_output_size)
+{
     int out_x = get_global_id(0);
     int out_y = get_global_id(1);
+    int out_c = get_global_id(2);
+
     if (out_x >= conv_output_size || out_y >= conv_output_size) return;
 
-    float sum = 0.0f;
+    float sum = biases[out_c];
     for (int i = 0; i < kernel_size; i++) {
         for (int j = 0; j < kernel_size; j++) {
             int in_x = out_x + i;
             int in_y = out_y + j;
-            sum += input[in_y * input_size + in_x] * weights[i * kernel_size + j];
+            sum += input[in_y * input_size + in_x] *
+                   weights[out_c * kernel_size * kernel_size + i * kernel_size + j];
         }
     }
-    output[out_y * conv_output_size + out_x] = fmax(sum, 0.0f);
+    output[out_c * conv_output_size * conv_output_size + out_y * conv_output_size + out_x] = fmax(sum, 0.0f);
 }
 
 
 
-__kernel void maxpool2d(__global float* input, __global float* output,
-                        int input_size, int pool_size) {
-    int ox = get_global_id(0);
+
+
+__kernel void conv2d_backward(
+    __global const float* in,          // [C, H, W] (input to this conv layer)
+    __global float* weights,           // [F, C, k, k] (weights to update)
+    __global float* biases,            // [F] (biases to update)
+    __global const float* grad_output, // [F, outH, outW] (gradient wrt this layer's output)
+    __global float* grad_input,        // [C, H, W] (gradient wrt input, to pass back)
+    int inC, int inH, int inW,         // Input channels, height, width
+    int outC, int k,                   // Output channels (filters), kernel size
+    int outH, int outW,                // Output feature map size
+    float learning_rate
+) {
+    int f = get_global_id(0); // output channel (filter)
+    if (f >= outC) return;
+
+    for (int oy = 0; oy < outH; ++oy) {
+        for (int ox = 0; ox < outW; ++ox) {
+            int go_idx = f * outH * outW + oy * outW + ox;
+            float go = grad_output[go_idx]; // dL/d(output[f, oy, ox])
+
+            // Update bias
+            biases[f] -= learning_rate * go;
+
+            for (int c = 0; c < inC; ++c) {
+                for (int ky = 0; ky < k; ++ky) {
+                    for (int kx = 0; kx < k; ++kx) {
+                        int iy = oy + ky;
+                        int ix = ox + kx;
+                        if (iy < inH && ix < inW) {
+                            int in_idx = c * inH * inW + iy * inW + ix;
+                            int w_idx  = f * inC * k * k + c * k * k + ky * k + kx;
+
+                            // Save pre-update weight for grad_input math
+                            float w_pre = weights[w_idx];
+
+                            // Weight update
+                            float dL_dw = in[in_idx] * go;
+                            weights[w_idx] -= learning_rate * dL_dw;
+
+                            // Input gradient accum (host must zero before launch!)
+                            grad_input[in_idx] += w_pre * go;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
+
+__kernel void maxpool2d(
+    __global const float* input,         // [channels, in_h, in_w]
+    __global float* output,              // [channels, out_h, out_w]
+    __global int* max_indices,           // [channels, out_h, out_w]
+    int channels, int in_h, int in_w,
+    int pool_size, int out_h, int out_w)
+{
+    int c = get_global_id(0);
     int oy = get_global_id(1);
-    int stride = pool_size;
-    int ix0 = ox * stride;
-    int iy0 = oy * stride;
-    float maxval = input[iy0 * input_size + ix0];
+    int ox = get_global_id(2);
+
+    if (c >= channels || oy >= out_h || ox >= out_w) return;
+
+    float maxval = -FLT_MAX;
+    int maxidx = 0;
     for (int py = 0; py < pool_size; ++py) {
         for (int px = 0; px < pool_size; ++px) {
-            int ix = ox * stride + px;
-            int iy = oy * stride + py;
-            float v = input[iy * input_size + ix];
-            if (v > maxval) maxval = v;
+            int iy = oy * pool_size + py;
+            int ix = ox * pool_size + px;
+            if (iy < in_h && ix < in_w) {
+                int idx = c * in_h * in_w + iy * in_w + ix;
+                float v = input[idx];
+                if (v > maxval) {
+                    maxval = v;
+                    maxidx = idx;
+                }
+            }
         }
     }
-    output[oy * (input_size / pool_size) + ox] = maxval;
+    int out_idx = c * out_h * out_w + oy * out_w + ox;
+    output[out_idx] = maxval;
+    max_indices[out_idx] = maxidx;
 }
+
+
+
+__kernel void maxpool2d_backward(
+    __global const float* grad_output,     // [channels, out_h, out_w]
+    __global float* grad_input,            // [channels, in_h, in_w]
+    __global const int* max_indices,       // [channels, out_h, out_w]
+    int channels, int out_h, int out_w
+) {
+    int c = get_global_id(0);
+    int oy = get_global_id(1);
+    int ox = get_global_id(2);
+
+    if (c >= channels || oy >= out_h || ox >= out_w) return;
+
+    int out_idx = c * out_h * out_w + oy * out_w + ox;
+    int in_idx = max_indices[out_idx];
+
+    // Add upstream grad to winner in grad_input
+    grad_input[in_idx] += grad_output[out_idx];
+}
+
 
 
 
@@ -68,6 +162,35 @@ __kernel void dense_layer(__global const float* input,
 
     output[i] = fmax(sum, 0.0f); // ReLU activation
 }
+
+
+
+// Dense layer backward kernel
+// Kernel: Each output neuron computes its own grad_input contribution
+__kernel void dense_backward(
+    __global const float* input,           // [input_size]
+    __global float* weights,               // [output_size][input_size]
+    __global float* biases,                // [output_size]
+    __global const float* grad_output,     // [output_size]
+    __global float* grad_input_accum,      // [output_size][input_size]
+    int input_size,
+    int output_size,
+    float learning_rate)
+{
+    int i = get_global_id(0); // output neuron index (class)
+    if (i >= output_size) return;
+
+    for (int j = 0; j < input_size; ++j) {
+        float dL_dweight = grad_output[i] * input[j];
+        int w_idx = i * input_size + j;
+        // SGD update
+        weights[w_idx] -= learning_rate * dL_dweight;
+        // Store this neuron's grad_input contribution
+        grad_input_accum[i * input_size + j] = grad_output[i] * weights[w_idx];
+    }
+    biases[i] -= learning_rate * grad_output[i];
+}
+
 
 
 __kernel void argmax(
@@ -180,31 +303,4 @@ __kernel void softmax_parallel(
     if (gid < len && sumval > 0.0f) {
         output[gid] = expval / sumval;
     }
-}
-
-
-// Dense layer backward kernel
-// Kernel: Each output neuron computes its own grad_input contribution
-__kernel void dense_backward(
-    __global const float* input,           // [input_size]
-    __global float* weights,               // [output_size][input_size]
-    __global float* biases,                // [output_size]
-    __global const float* grad_output,     // [output_size]
-    __global float* grad_input_accum,      // [output_size][input_size]
-    int input_size,
-    int output_size,
-    float learning_rate)
-{
-    int i = get_global_id(0); // output neuron index (class)
-    if (i >= output_size) return;
-
-    for (int j = 0; j < input_size; ++j) {
-        float dL_dweight = grad_output[i] * input[j];
-        int w_idx = i * input_size + j;
-        // SGD update
-        weights[w_idx] -= learning_rate * dL_dweight;
-        // Store this neuron's grad_input contribution
-        grad_input_accum[i * input_size + j] = grad_output[i] * weights[w_idx];
-    }
-    biases[i] -= learning_rate * grad_output[i];
 }

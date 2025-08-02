@@ -203,7 +203,7 @@ void load_minibatch(
 
 #define DATA_PATH "./data/"
 #define TRAIN_CSV_FILENAME "afhq32_train.csv"
-#define VAL_CSV_FILENAME "afh32_val.csv"
+#define VAL_CSV_FILENAME "afhq32_val.csv"
 
 int main() {
     // Seed PRNG with current time (once per program)
@@ -218,6 +218,15 @@ int main() {
     printf("Loading training set from %s.\n", train_path);
     int training_set_size = load_csv(train_path, imageData, MAX_SET_SIZE);
     printf("Loaded %d training items from %s.\n", training_set_size, train_path);
+
+    // Validation set
+    ImageData valData[MAX_SET_SIZE];
+    char val_path[MAX_PATH_LEN] = {0};
+    strncat(val_path, DATA_PATH, sizeof(DATA_PATH));
+    strncat(val_path, VAL_CSV_FILENAME, sizeof(VAL_CSV_FILENAME));
+    printf("Loading validation set from %s.\n", val_path);
+    int val_set_size = load_csv(val_path, valData, MAX_SET_SIZE);
+    printf("Loaded %d validation items from %s.\n", val_set_size, val_path);
 
     // --- 2. Init model weights ---
     // float input[INPUT_SIZE * INPUT_SIZE];
@@ -304,7 +313,7 @@ int main() {
 
     clSetKernelArg(softmax_kernel, 2, sizeof(int), &dense_out_val);
 
-    int num_epochs = 10;
+    int num_epochs = 500;
     for (int epoch = 0; epoch < num_epochs; ++epoch) {
         printf("==== Epoch %d ====\n", epoch+1);
         shuffle_array(imageData, training_set_size); // Reshuffle data at start of each epoch
@@ -374,6 +383,65 @@ int main() {
         float avg_loss = total_loss / training_set_size;
         float acc = 100.0f * correct / training_set_size;
         printf("Epoch %d Summary: Accuracy = %.2f%%, Avg Loss = %.4f\n\n", epoch+1, acc, avg_loss);
+
+        // ---- VALIDATION PHASE ----
+        int val_correct = 0;
+        int confusion[DENSE_OUTPUT_SIZE][DENSE_OUTPUT_SIZE] = {0}; // [true][pred]
+
+        for (int i = 0; i < val_set_size; ++i) {
+            float val_input[INPUT_PIXELS];
+            int true_label = valData[i].label;
+            if (load_greyscale_image(valData[i].path, val_input, INPUT_SIZE, INPUT_SIZE)) {
+                fprintf(stderr, "Failed to load validation image %s\n", valData[i].path);
+                continue;
+            }
+
+            // Write image to device
+            clEnqueueWriteBuffer(queue, input_buf, CL_TRUE, 0, sizeof(float) * INPUT_PIXELS, val_input, 0, NULL, NULL);
+
+            // Forward pass (same as training)
+            clSetKernelArg(conv_kernel, 0, sizeof(cl_mem), &input_buf);
+            clSetKernelArg(conv_kernel, 2, sizeof(cl_mem), &conv_output_buf);
+            size_t global_size_conv[2] = { conv_out_val, conv_out_val };
+            clEnqueueNDRangeKernel(queue, conv_kernel, 2, NULL, global_size_conv, NULL, 0, NULL, NULL);
+
+            clSetKernelArg(pool_kernel, 0, sizeof(cl_mem), &conv_output_buf);
+            clSetKernelArg(pool_kernel, 1, sizeof(cl_mem), &pool_output_buf);
+            size_t global_size_pool[2] = { pool_out_val, pool_out_val };
+            clEnqueueNDRangeKernel(queue, pool_kernel, 2, NULL, global_size_pool, NULL, 0, NULL, NULL);
+
+            clSetKernelArg(dense_kernel, 0, sizeof(cl_mem), &pool_output_buf);
+            clSetKernelArg(dense_kernel, 3, sizeof(cl_mem), &dense_output_buf);
+            size_t global_size_dense = dense_out_val;
+            clEnqueueNDRangeKernel(queue, dense_kernel, 1, NULL, &global_size_dense, NULL, 0, NULL, NULL);
+
+            clSetKernelArg(softmax_kernel, 0, sizeof(cl_mem), &dense_output_buf);
+            clSetKernelArg(softmax_kernel, 1, sizeof(cl_mem), &softmax_output_buf);
+            size_t local_size = WGSIZE;
+            size_t global_size = ((dense_out_val + WGSIZE - 1) / WGSIZE) * WGSIZE;
+            clEnqueueNDRangeKernel(queue, softmax_kernel, 1, NULL, &global_size, &local_size, 0, NULL, NULL);
+
+            float softmax_output[DENSE_OUTPUT_SIZE];
+            clEnqueueReadBuffer(queue, softmax_output_buf, CL_TRUE, 0,
+                sizeof(softmax_output), softmax_output, 0, NULL, NULL);
+
+            int pred = argmax(softmax_output, DENSE_OUTPUT_SIZE);
+            if (pred == true_label) val_correct++;
+            confusion[true_label][pred]++;
+        }
+
+        float val_acc = 100.0f * val_correct / val_set_size;
+        printf("VALIDATION: Accuracy = %.2f%%\n", val_acc);
+
+        // Print confusion matrix
+        printf("Confusion Matrix (rows: true, cols: pred):\n");
+        for (int i = 0; i < DENSE_OUTPUT_SIZE; ++i) {
+            for (int j = 0; j < DENSE_OUTPUT_SIZE; ++j) {
+                printf("%4d ", confusion[i][j]);
+            }
+            printf("\n");
+        }
+
     }
 
 

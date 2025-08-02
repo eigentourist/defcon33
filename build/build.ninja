@@ -453,6 +453,41 @@ build cnn_opencl_c: C_EXECUTABLE_LINKER__cnn_opencl_c_Debug CMakeFiles/cnn_openc
   TARGET_FILE = cnn_opencl_c
   TARGET_PDB = cnn_opencl_c.dbg
 
+# =============================================================================
+# Object build statements for EXECUTABLE target cnn_opencl_d
+
+
+#############################################
+# Order-only phony target for cnn_opencl_d
+
+build cmake_object_order_depends_target_cnn_opencl_d: phony || .
+
+build CMakeFiles/cnn_opencl_d.dir/src/cnn_opencl_d.c.o: C_COMPILER__cnn_opencl_d_unscanned_Debug /Users/acz/defcon33/src/cnn_opencl_d.c || cmake_object_order_depends_target_cnn_opencl_d
+  CONFIG = Debug
+  DEP_FILE = CMakeFiles/cnn_opencl_d.dir/src/cnn_opencl_d.c.o.d
+  FLAGS = -g -std=gnu99
+  INCLUDES = -I/usr/local/opt/opencl-headers/include
+  OBJECT_DIR = CMakeFiles/cnn_opencl_d.dir
+  OBJECT_FILE_DIR = CMakeFiles/cnn_opencl_d.dir/src
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target cnn_opencl_d
+
+
+#############################################
+# Link the executable cnn_opencl_d
+
+build cnn_opencl_d: C_EXECUTABLE_LINKER__cnn_opencl_d_Debug CMakeFiles/cnn_opencl_d.dir/src/cnn_opencl_d.c.o
+  CONFIG = Debug
+  FLAGS = -g
+  LINK_FLAGS = -framework OpenCL
+  OBJECT_DIR = CMakeFiles/cnn_opencl_d.dir
+  POST_BUILD = :
+  PRE_LINK = :
+  TARGET_FILE = cnn_opencl_d
+  TARGET_PDB = cnn_opencl_d.dbg
+
 
 #############################################
 # Utility command for edit_cache
@@ -488,7 +523,7 @@ build rebuild_cache: phony CMakeFiles/rebuild_cache.util
 #############################################
 # Folder: /Users/acz/defcon33/build
 
-build all: phony matrix_mult_cpu matrix_mult_opencl game_of_life list_platforms perceptron_cpu perceptron_opencl ml_perceptron_cpu ml_perceptron_opencl cnn_cpu cnn_opencl_a cnn_opencl_b cnn_opencl_c
+build all: phony matrix_mult_cpu matrix_mult_opencl game_of_life list_platforms perceptron_cpu perceptron_opencl ml_perceptron_cpu ml_perceptron_opencl cnn_cpu cnn_opencl_a cnn_opencl_b cnn_opencl_c cnn_opencl_d
 
 # =============================================================================
 # Built-in targets
