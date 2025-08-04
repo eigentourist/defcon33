@@ -28,8 +28,6 @@ __kernel void conv2d(
 
 
 
-
-
 __kernel void conv2d_backward(
     __global const float* in,          // [C, H, W] (input to this conv layer)
     __global float* weights,           // [F, C, k, k] (weights to update)
@@ -80,6 +78,82 @@ __kernel void conv2d_backward(
 
 
 
+// Batch SGD Version
+__kernel void conv2d_backward_accum(
+    __global const float* in,            // [C, H, W]
+    __global const float* grad_output,   // [F, outH, outW]
+    __global float* grad_weights_accum,  // [F, C, k, k]
+    __global float* grad_biases_accum,   // [F]
+    __global float* grad_input_accum,    // [C, H, W]
+    __global const float* weights,       // [F, C, k, k]
+    int inC, int inH, int inW,
+    int outC, int k,
+    int outH, int outW)
+{
+    int f = get_global_id(0);
+    if (f >= outC) return;
+
+    for (int oy = 0; oy < outH; ++oy) {
+        for (int ox = 0; ox < outW; ++ox) {
+            int go_idx = f * outH * outW + oy * outW + ox;
+            float go = grad_output[go_idx];
+
+            // Bias grad
+            grad_biases_accum[f] += go;
+
+            for (int c = 0; c < inC; ++c) {
+                for (int ky = 0; ky < k; ++ky) {
+                    for (int kx = 0; kx < k; ++kx) {
+                        int iy = oy + ky;
+                        int ix = ox + kx;
+                        if (iy < inH && ix < inW) {
+                            int in_idx = c * inH * inW + iy * inW + ix;
+                            int w_idx  = f * inC * k * k + c * k * k + ky * k + kx;
+
+                            // dL/dW accumulator
+                            float dL_dw = in[in_idx] * go;
+                            grad_weights_accum[w_idx] += dL_dw;
+
+                            // dL/dInput accumulator (for downstream)
+                            // (This is optional; depends if you want to accumulate over batch or just store last.)
+                            grad_input_accum[in_idx] += weights[w_idx] * go;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
+// Batch SGD Version
+__kernel void conv2d_update(
+    __global float* weights,
+    __global float* biases,
+    __global float* grad_weights_accum,
+    __global float* grad_biases_accum,
+    int n_weights,   // total number of weights
+    int n_biases,    // total number of biases
+    float learning_rate,
+    int batch_size)
+{
+    int i = get_global_id(0);
+    // Update weights
+    if (i < n_weights) {
+        float grad_avg = grad_weights_accum[i] / batch_size;
+        weights[i] -= learning_rate * grad_avg;
+        grad_weights_accum[i] = 0.0f;
+    }
+    // Update biases
+    if (i < n_biases) {
+        float grad_avg = grad_biases_accum[i] / batch_size;
+        biases[i] -= learning_rate * grad_avg;
+        grad_biases_accum[i] = 0.0f;
+    }
+}
+
+
 
 __kernel void maxpool2d(
     __global const float* input,         // [channels, in_h, in_w]
@@ -117,6 +191,25 @@ __kernel void maxpool2d(
 
 
 
+// Batch SGD Version -- but integrates with original maxpool2d_backward below
+__kernel void maxpool2d_backward_accum(
+    __global const float* grad_output,     // [channels, out_h, out_w] (this sample)
+    __global float* grad_input_accum,      // [channels, in_h, in_w] (accumulator, not zeroed between samples)
+    __global const int* max_indices,       // [channels, out_h, out_w] (from FWD pass of this sample)
+    int channels, int out_h, int out_w)
+{
+    int c = get_global_id(0);
+    int oy = get_global_id(1);
+    int ox = get_global_id(2);
+    if (c >= channels || oy >= out_h || ox >= out_w) return;
+
+    int out_idx = c * out_h * out_w + oy * out_w + ox;
+    int in_idx = max_indices[out_idx];
+    grad_input_accum[in_idx] += grad_output[out_idx];
+}
+
+
+
 __kernel void maxpool2d_backward(
     __global const float* grad_output,     // [channels, out_h, out_w]
     __global float* grad_input,            // [channels, in_h, in_w]
@@ -135,7 +228,6 @@ __kernel void maxpool2d_backward(
     // Add upstream grad to winner in grad_input
     grad_input[in_idx] += grad_output[out_idx];
 }
-
 
 
 
@@ -183,13 +275,61 @@ __kernel void dense_backward(
     for (int j = 0; j < input_size; ++j) {
         float dL_dweight = grad_output[i] * input[j];
         int w_idx = i * input_size + j;
-        // SGD update
+        float w_pre = weights[w_idx];
+        grad_input_accum[i * input_size + j] = grad_output[i] * w_pre;
         weights[w_idx] -= learning_rate * dL_dweight;
-        // Store this neuron's grad_input contribution
-        grad_input_accum[i * input_size + j] = grad_output[i] * weights[w_idx];
     }
     biases[i] -= learning_rate * grad_output[i];
 }
+
+
+// Batch SGD Version
+// Accumulates into grad_weights_accum, grad_biases_accum (not updating weights!)
+__kernel void dense_backward_accum(
+    __global const float* input,
+    __global const float* grad_output,
+    __global float* grad_weights_accum, // accumulates dL/dW
+    __global float* grad_biases_accum,  // accumulates dL/db
+    int input_size,
+    int output_size)
+{
+    int i = get_global_id(0);
+    if (i >= output_size) return;
+
+    for (int j = 0; j < input_size; ++j) {
+        int w_idx = i * input_size + j;
+        float grad = grad_output[i] * input[j];
+        grad_weights_accum[w_idx] += grad;
+    }
+    grad_biases_accum[i] += grad_output[i];
+}
+
+
+// Batch SGD Version
+__kernel void dense_update(
+    __global float* weights,
+    __global float* biases,
+    __global float* grad_weights_accum,
+    __global float* grad_biases_accum,
+    int input_size,
+    int output_size,
+    float learning_rate,
+    int batch_size)
+{
+    int i = get_global_id(0);
+    if (i >= output_size) return;
+
+    for (int j = 0; j < input_size; ++j) {
+        int w_idx = i * input_size + j;
+        float grad_avg = grad_weights_accum[w_idx] / batch_size;
+        weights[w_idx] -= learning_rate * grad_avg;
+        grad_weights_accum[w_idx] = 0.0f; // reset for next batch
+    }
+    float bias_grad_avg = grad_biases_accum[i] / batch_size;
+    biases[i] -= learning_rate * bias_grad_avg;
+    grad_biases_accum[i] = 0.0f; // reset for next batch
+}
+
 
 
 
@@ -244,6 +384,7 @@ __kernel void softmax(
         output[gid] = exp(input[gid] - max_val) / sum;
     }
 }
+
 
 
 // Parallel softmax kernel for one vector (output of dense layer)
