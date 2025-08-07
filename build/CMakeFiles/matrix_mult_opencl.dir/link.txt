@@ -1,0 +1,1 @@
+/usr/bin/cc CMakeFiles/matrix_mult_opencl.dir/src/matrix_mult_opencl.c.o -o matrix_mult_opencl  /usr/lib/x86_64-linux-gnu/libOpenCL.so 

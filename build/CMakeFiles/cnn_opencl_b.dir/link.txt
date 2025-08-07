@@ -1,0 +1,1 @@
+/usr/bin/cc CMakeFiles/cnn_opencl_b.dir/src/cnn_opencl_b.c.o -o cnn_opencl_b  /usr/lib/x86_64-linux-gnu/libOpenCL.so 

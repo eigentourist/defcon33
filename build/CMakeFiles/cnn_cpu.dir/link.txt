@@ -1,0 +1,1 @@
+/usr/bin/cc CMakeFiles/cnn_cpu.dir/src/cnn_cpu.c.o -o cnn_cpu 

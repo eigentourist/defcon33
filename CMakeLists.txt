@@ -1,7 +1,25 @@
 cmake_minimum_required(VERSION 3.10)
-project(DefCon33 C)
+project(DefCon33 LANGUAGES C CUDA)
 
 set(CMAKE_C_STANDARD 99)
+set(CMAKE_CUDA_ARCHITECTURES 86)
+
+# --- CUDA CNN Executable ---
+add_executable(cnn_cuda_afhq1 src/cnn_cuda_afhq1.c src/cnn_kernels.cu src/stb_image.h)
+
+# Enable host code to use CUDA runtime API functions
+set_target_properties(cnn_cuda_afhq1 PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+    CUDA_STANDARD 11
+)
+
+# Link against CUDA (math is usually already included, but to be sure)
+target_link_libraries(cnn_cuda_afhq1
+    m          # for math.h, log, etc
+    cuda       # CUDA driver (optional, usually linked automatically)
+    cudart     # CUDA runtime
+)
+
 
 # --- matrix multiply demos ---
 add_executable(matrix_mult_cpu src/matrix_mult_cpu.c)

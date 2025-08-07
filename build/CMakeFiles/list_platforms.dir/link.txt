@@ -1,0 +1,1 @@
+/usr/bin/cc CMakeFiles/list_platforms.dir/src/list_platforms.c.o -o list_platforms  /usr/lib/x86_64-linux-gnu/libOpenCL.so 

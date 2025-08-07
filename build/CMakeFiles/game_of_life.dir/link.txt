@@ -1,0 +1,1 @@
+/usr/bin/cc CMakeFiles/game_of_life.dir/src/main.c.o -o game_of_life  /usr/lib/x86_64-linux-gnu/libOpenCL.so -lcurses /usr/lib/x86_64-linux-gnu/libform.so 
