@@ -5,6 +5,7 @@
 
 #include "cnn_kernels.h"
 #include <cuda_runtime.h>
+#include <stdio.h>
 #include <cfloat>
 
 //
@@ -69,6 +70,10 @@ __global__ void conv2d_backward_accum(
             float go = grad_output[go_idx];
 
             atomicAdd(&grad_biases_accum[f], go);
+	    if (oy == 0 && ox == 0) { // Only print once per output channel per kernel launch
+                printf("conv2d_backward_accum: f=%d, initial grad_biases_accum=%f\n", f, grad_biases_accum[f]);
+	    }
+
 
             for (int c = 0; c < inC; ++c) {
                 for (int ky = 0; ky < k; ++ky) {
@@ -221,6 +226,7 @@ __global__ void dense_backward_accum(
         atomicAdd(&grad_weights_accum[w_idx], grad);
     }
     atomicAdd(&grad_biases_accum[i], grad_output[i]);
+    if (i == 0) printf("dense_backward_accum: i=%d grad_biases_accum=%f\n", i, grad_biases_accum[i]);
 }
 
 
@@ -341,7 +347,6 @@ __global__ void softmax_parallel(
 
 // -------------------- Host-side CUDA Helper Functions --------------------
 
-#include <stdio.h>
 
 void conv2d_forward_cuda(
     float* d_input,

@@ -247,15 +247,15 @@ int main() {
     int train_size = load_csv(train_path, trainData, MAX_SET_SIZE);
     int val_size = load_csv(val_path, valData, MAX_SET_SIZE);
     printf("Train size: %d, Val size: %d\n", train_size, val_size);
-    printf("First 10 training data samples:\n");
-    for (int i = 0; i < 10 && i < train_size; ++i) {
+
+    printf("Training data samples:\n");
+    for (int i = 0; i < train_size; ++i) {
         printf("  %s label=%d\n", trainData[i].path, trainData[i].label);
     }
-    printf("First 10 validation data samples:\n");
-    for (int i = 0; i < 10 && i < val_size; ++i) {
+    printf("Validation data samples:\n");
+    for (int i = 0; i < val_size; ++i) {
 	printf("  %s label=%d\n", valData[i].path, valData[i].label);
     }
-
 
     // ---- 2. Init weights & biases ----
     // (no change: your host arrays are fine)
@@ -392,23 +392,84 @@ int main() {
                     input_buf, conv1_weights_buf, conv1_biases_buf, conv1_output_buf,
                     INPUT_SIZE, KERNEL1_SIZE, CONV1_OUTPUT_SIZE, CONV1_KERNELS);
 
+                cudaError_t err = cudaGetLastError();
+                if (err != cudaSuccess) {
+                    printf("CUDA error after conv1: %s\n", cudaGetErrorString(err));
+                }
+
+                printf("conv1_output: ");
+                float* conv1_output_host = (float*)malloc(conv1_out_bytes);
+                cudaMemcpy(conv1_output_host, conv1_output_buf, conv1_out_bytes, cudaMemcpyDeviceToHost);
+                for (int i = 0; i < 5; ++i) printf("%f ", conv1_output_host[i]);
+                    printf("\n");
+
+                printf("conv1 weights: ");
+                float* conv1_weights_host = (float*)malloc(conv1_w_bytes);
+                cudaMemcpy(conv1_weights_host, conv1_weights_buf, conv1_w_bytes, cudaMemcpyDeviceToHost);
+                for (int i = 0; i < 5; ++i) printf("%f ", conv1_weights_host[i]);
+                    printf("\n");
+
+                printf("conv1 biases: ");
+                float* conv1_biases_host = (float*)malloc(conv1_b_bytes);
+                cudaMemcpy(conv1_biases_host, conv1_biases_buf, conv1_b_bytes, cudaMemcpyDeviceToHost);
+                for (int i = 0; i < 10; ++i) printf("%f ", conv1_biases_host[i]);
+                    printf("\n");
+
+
                 maxpool2d_forward_cuda(
                     conv1_output_buf, pool1_output_buf, maxpool1_max_indices_buf,
                     CONV1_KERNELS, CONV1_OUTPUT_SIZE, CONV1_OUTPUT_SIZE,
                     POOL_SIZE, POOL1_OUTPUT_SIZE, POOL1_OUTPUT_SIZE);
 
+                err = cudaGetLastError();
+                if (err != cudaSuccess) {
+                    printf("CUDA error after maxpool1: %s\n", cudaGetErrorString(err));
+                }
+
+
+                printf("maxpool1 output: ");
+                float* maxpool1_output_host = (float*)malloc(pool1_out_bytes);
+                cudaMemcpy(maxpool1_output_host, maxpool1_max_indices_buf, pool1_out_bytes, cudaMemcpyDeviceToHost);
+                for (int i = 0; i < 5; ++i) printf("%f ", maxpool1_output_host[i]);
+                    printf("\n");
+
                 conv2d_forward_cuda(
                     pool1_output_buf, conv2_weights_buf, conv2_biases_buf, conv2_output_buf,
                     POOL1_OUTPUT_SIZE, KERNEL2_SIZE, CONV2_OUTPUT_SIZE, CONV2_KERNELS);
+
+                printf("conv2 output: ");
+                float* conv2_output_host = (float*)malloc(conv2_out_bytes);
+                cudaMemcpy(conv2_output_host, conv2_output_buf, conv2_out_bytes, cudaMemcpyDeviceToHost);
+                for (int i = 0; i < 5; ++i) printf("%f ", conv2_output_host[i]);
+                    printf("\n");
 
                 maxpool2d_forward_cuda(
                     conv2_output_buf, pool2_output_buf, maxpool2_max_indices_buf,
                     CONV2_KERNELS, CONV2_OUTPUT_SIZE, CONV2_OUTPUT_SIZE,
                     POOL_SIZE, POOL2_OUTPUT_SIZE, POOL2_OUTPUT_SIZE);
 
+                err = cudaGetLastError();
+                if (err != cudaSuccess) {
+                    printf("CUDA error after maxpool2: %s\n", cudaGetErrorString(err));
+                }
+
+
+                printf("maxpool2 output: ");
+                float* maxpool2_output_host = (float*)malloc(pool2_out_bytes);
+                cudaMemcpy(maxpool2_output_host, maxpool2_max_indices_buf, pool2_out_bytes, cudaMemcpyDeviceToHost);
+                for (int i = 0; i < 5; ++i) printf("%f ", maxpool2_output_host[i]);
+                    printf("\n");
+
+
                 dense_forward_cuda(
                     pool2_output_buf, dense_weights_buf, dense_biases_buf, dense_output_buf,
                     DENSE_INPUT_SIZE, DENSE_OUTPUT_SIZE);
+
+                err = cudaGetLastError();
+                if (err != cudaSuccess) {
+                    printf("CUDA error after dense_forward: %s\n", cudaGetErrorString(err));
+                }
+
 
                 softmax_forward_cuda(
                     dense_output_buf, softmax_output_buf, DENSE_OUTPUT_SIZE);
@@ -417,12 +478,12 @@ int main() {
                 float softmax_output[DENSE_OUTPUT_SIZE];
                 cudaMemcpy(softmax_output, softmax_output_buf, dense_out_bytes, cudaMemcpyDeviceToHost);
 
-		// --- Compute gradient of loss wrt softmax output ---
-		float grad_output[DENSE_OUTPUT_SIZE];
-		for (int j = 0; j < DENSE_OUTPUT_SIZE; ++j) {
-			grad_output[j] = softmax_output[j] - (j == labels[i] ? 1.0f : 0.0f);
-		}
-		cudaMemcpy(grad_output_buf, grad_output, sizeof(float) * DENSE_OUTPUT_SIZE, cudaMemcpyHostToDevice);
+                // --- Compute gradient of loss wrt softmax output ---
+                float grad_output[DENSE_OUTPUT_SIZE];
+                for (int j = 0; j < DENSE_OUTPUT_SIZE; ++j) {
+                    grad_output[j] = softmax_output[j] - (j == labels[i] ? 1.0f : 0.0f);
+                }
+                cudaMemcpy(grad_output_buf, grad_output, sizeof(float) * DENSE_OUTPUT_SIZE, cudaMemcpyHostToDevice);
 
                 int pred = argmax(softmax_output, DENSE_OUTPUT_SIZE);
                 float loss = -logf(fmaxf(softmax_output[labels[i]], 1e-8f));
@@ -574,7 +635,8 @@ int main() {
             }
             printf("\n");
         }
-    }  // end of epoch loop
+
+}  // end of epoch loop
 
     // --- Cleanup ---
     cudaFree(input_buf);
