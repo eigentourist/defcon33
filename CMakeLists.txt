@@ -2,24 +2,54 @@ cmake_minimum_required(VERSION 3.10)
 project(DefCon33 LANGUAGES C CUDA)
 
 set(CMAKE_C_STANDARD 99)
-set(CMAKE_CUDA_ARCHITECTURES 86)
 
-# --- CUDA CNN Executable ---
-add_executable(cnn_cuda_afhq1 src/cnn_cuda_afhq1.c src/cnn_kernels.cu src/stb_image.h)
+# CUDA config
+set(CMAKE_CUDA_STANDARD 14)
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
-# Enable host code to use CUDA runtime API functions
+# If the running CMake knows CMP0104, enable the new behavior and set arch list
+if(POLICY CMP0104)
+  cmake_policy(SET CMP0104 NEW)
+endif()
+
+# If this CMake supports CUDA_ARCHITECTURES (3.18+), use it and DROP manual -gencode
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.18")
+  # SASS for these SMs (fat binary)
+  set(CMAKE_CUDA_ARCHITECTURES 52 61 70 75 80 86 89 90)
+endif()
+
+add_executable(cnn_cuda_afhq1
+  src/cnn_cuda_afhq1.c
+  src/cnn_kernels.cu
+  src/stb_image.h
+)
+
+# For older CMake (<3.18), fall back to manual -gencode (keeps fatbin + PTX)
+if(CMAKE_VERSION VERSION_LESS "3.18")
+  target_compile_options(cnn_cuda_afhq1 PRIVATE
+    $<$<COMPILE_LANGUAGE:CUDA>:
+      -gencode=arch=compute_52,code=sm_52
+      -gencode=arch=compute_61,code=sm_61
+      -gencode=arch=compute_70,code=sm_70
+      -gencode=arch=compute_75,code=sm_75
+      -gencode=arch=compute_80,code=sm_80
+      -gencode=arch=compute_86,code=sm_86
+      -gencode=arch=compute_89,code=sm_89
+      -gencode=arch=compute_90,code=sm_90
+      # PTX fallback for forward-compat JIT
+      -gencode=arch=compute_90,code=compute_90
+    >
+  )
+endif()
+
+# Optional, but fine:
 set_target_properties(cnn_cuda_afhq1 PROPERTIES
-    CUDA_SEPARABLE_COMPILATION ON
-    CUDA_STANDARD 11
+  CUDA_SEPARABLE_COMPILATION ON
 )
 
-# Link against CUDA (math is usually already included, but to be sure)
-target_link_libraries(cnn_cuda_afhq1
-    m          # for math.h, log, etc
-    cuda       # CUDA driver (optional, usually linked automatically)
-    cudart     # CUDA runtime
-)
-
+# Don’t force-link cuda/cudart; CMake’s CUDA language handles it.
+# Keep libm if you need math functions:
+target_link_libraries(cnn_cuda_afhq1 m)
 
 # --- matrix multiply demos ---
 add_executable(matrix_mult_cpu src/matrix_mult_cpu.c)
