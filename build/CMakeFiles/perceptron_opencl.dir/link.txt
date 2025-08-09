@@ -1,1 +1,0 @@
-/usr/bin/cc CMakeFiles/perceptron_opencl.dir/src/perceptron_opencl.c.o -o perceptron_opencl  /usr/lib/x86_64-linux-gnu/libOpenCL.so 

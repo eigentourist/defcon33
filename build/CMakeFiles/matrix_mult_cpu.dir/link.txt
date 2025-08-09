@@ -1,1 +1,0 @@
-/usr/bin/cc CMakeFiles/matrix_mult_cpu.dir/src/matrix_mult_cpu.c.o -o matrix_mult_cpu 
